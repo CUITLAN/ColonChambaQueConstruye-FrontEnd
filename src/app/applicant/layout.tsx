@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useApplicantStore } from '../store/authApplicantStore'; 
+import { useUserStore } from '../store/useUserInfoStore';
 
 interface ApplicantLayoutProps {
   children: React.ReactNode;
@@ -11,7 +12,8 @@ interface ApplicantLayoutProps {
 export default function ApplicantLayout({ children }: ApplicantLayoutProps) {
   const router = useRouter();
 
-  const {token, initialize} = useApplicantStore();
+  const {token,id:userId, initialize} = useApplicantStore();
+  const {fetchUserData}=useUserStore()
   const [isInitialized, setIsInitialized] = useState(false);
 
   const [isLoading, setIsLoading] = useState(true);
@@ -35,6 +37,13 @@ useEffect(() => {
       
     }
   }, [token, isInitialized, router]);
+
+  useEffect(()=>{
+    if(!isInitialized)return
+    if(!token||!userId)return
+
+    fetchUserData(userId,token)
+  },[isInitialized,token,userId,fetchUserData])
 
   if (isLoading) {
     return (

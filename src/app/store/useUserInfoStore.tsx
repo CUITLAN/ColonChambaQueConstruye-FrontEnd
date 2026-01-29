@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 
 interface UserProfileData {
+  id:string;
   firstName: string;
   lastName: string;
   address: string;
@@ -31,6 +32,9 @@ export const useUserStore = create<UserState>((set, get) => ({
   error: null,
 
   fetchUserData: async (userId, token) => {
+    const current = get().user
+    if(current?.id === userId)return
+
     set({ isLoading: true, error: null });
     try {
       const response = await fetch(`/api/v1/users/${userId}`, {
@@ -48,6 +52,7 @@ export const useUserStore = create<UserState>((set, get) => ({
       const apiData = result.data; 
       console.log('[STORE] apiData used:', apiData);
       const mappedUser: UserProfileData = {
+        id:userId,
         firstName: apiData.firstName || '', 
         lastName: apiData.lastName || '',
         address: apiData.address || '',

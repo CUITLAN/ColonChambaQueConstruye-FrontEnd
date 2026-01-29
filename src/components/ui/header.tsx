@@ -2,11 +2,9 @@
 
 import React, { useState, type ReactNode } from 'react';
 import Link from 'next/link';
-import Image from 'next/image';
 import { User, Logout2 } from '@solar-icons/react';
 import { Button } from '@/components/ui/button';
 import { useRouter } from 'next/navigation';
-import { useApplicantStore } from '@/app/store/authApplicantStore';
 
 import {
   DropdownMenu,
@@ -16,11 +14,21 @@ import {
 } from '@/components/ui/dropdown-menu';
 
 import LogoutModal from './modal/LogoutModal';
+
+// Avatares
 import CompanyAvatar from '../common/AvatarTrasnform';
 
+
+// Stores
+import { useApplicantStore } from '@/app/store/authApplicantStore';
+import { useUserStore } from '@/app/store/useUserInfoStore';
+import ApplicantAvatar from '../applicant/AplicantAvatar';
+
 interface HeaderProps {
-  companyTitle: string;           
-  companyImageUrl?: string;       
+
+  companyTitle?: string;
+  companyImageUrl?: string;
+
   userIcon?: ReactNode;
   logOut?: ReactNode;
   showProfileButton?: boolean;
@@ -38,14 +46,26 @@ export default function Header({
   const [showLogout, setShowLogout] = useState(false);
   const router = useRouter();
 
+  // ✅ detecta applicant
+  const { token: applicantToken } = useApplicantStore();
+  const isApplicant = !!applicantToken;
+
+  // ✅ user data (ya la estás cargando desde layout/store)
+  const { user } = useUserStore();
+
   const openLogoutModal = () => setShowLogout(true);
   const closeLogoutModal = () => setShowLogout(false);
 
   const handleLogoutConfirm = () => {
     closeLogoutModal();
-    console.log('Cerrar sesión y redirigir a:', logoutRedirectPath);
     router.push(logoutRedirectPath);
   };
+
+
+
+  const companyName = (companyTitle && companyTitle.trim().length > 0) ? companyTitle : 'Empresa';
+
+  const profileHref = isApplicant ? '/applicant/user/profile' : '/user/profile';
 
   return (
     <>
@@ -63,21 +83,30 @@ export default function Header({
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="mono" className="flex items-center gap-2">
-                <CompanyAvatar
-          companyName={companyTitle}
-          
-          size="sm"
-        />
-                <span className="truncate max-w-[200px] text-left">
-                  {companyTitle}
-                </span>
+                {isApplicant ? (
+                  <>
+                    <ApplicantAvatar
+                      firstName={user?.firstName}
+                      lastName={user?.lastName}
+                      size="sm"
+                    />
+                    
+                  </>
+                ) : (
+                  <>
+                    <CompanyAvatar companyName={companyName} size="sm" />
+                    <span className="truncate max-w-[200px] text-left">
+                      {companyName}
+                    </span>
+                  </>
+                )}
               </Button>
             </DropdownMenuTrigger>
 
             <DropdownMenuContent>
               {showProfileButton && (
-                <Link href="user/profile">
-                  <DropdownMenuItem onClick={() => console.log('Página de perfil')}>
+                <Link href={profileHref}>
+                  <DropdownMenuItem>
                     {userIcon}
                     <span className="ml-2">Perfil</span>
                   </DropdownMenuItem>

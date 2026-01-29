@@ -62,9 +62,7 @@ export function ResumeElement({
       </div>
       {action !== 'none' && (
         <div className="flex shrink-0 items-center gap-1 px-2">
-          <Button variant="secundary" color="brand" size="icon" onClick={onRemove} className="h-9 w-9 border border-transparent hover:bg-transparent">
-            <CloseSquare className="h-4 w-4" weight="Bold" />
-          </Button>
+          
         </div>
       )}
     </div>

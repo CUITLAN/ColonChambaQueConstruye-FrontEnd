@@ -1,4 +1,5 @@
 'use client';
+
 import { useState, useEffect } from 'react';
 import TitleSection from '@/components/common/TitleSection';
 import { ConfigRow } from '@/components/settings/ConfigRow';
@@ -9,8 +10,9 @@ import { useApplicantStore } from '@/app/store/authApplicantStore';
 import CurriculumSection from '@/components/ui/Curriculum';
 import ConfigRowSelect from '@/components/settings/ConfigRowDropDawn';
 import { educationLevels } from '@/constants';
+import UpdateCvModal from '@/components/applicant/UpdateCvModal';
 
-// Tipo para la respuesta del CV
+
 interface CurriculumData {
   id: string;
   title: string;
@@ -18,10 +20,9 @@ interface CurriculumData {
 }
 
 export default function ProfessionalSummary() {
-  // 1. HOOKS Y STORE
-  const { user } = useUserStore(); 
-  const { token, id: userId } = useApplicantStore(); 
-  
+  const { user } = useUserStore();
+  const { token, id: userId } = useApplicantStore();
+
   const [cvData, setCvData] = useState<CurriculumData | null>(null);
   const [isLoadingCv, setIsLoadingCv] = useState(true);
 
@@ -36,57 +37,56 @@ export default function ProfessionalSummary() {
   });
 
   const [profileErrors, setProfileErrors] = useState<Record<string, string>>({});
+  const [isCvModalOpen, setIsCvModalOpen] = useState(false);
 
-  
+  // ✅ reutilizable para: primer load + refetch después del PATCH
+  const fetchCurriculum = async () => {
+    if (!userId || !token) return;
 
-  // 2. EFECTOS
-  // Cargar datos de texto
+    setIsLoadingCv(true);
+    try {
+      const response = await fetch(`/api/v1/users/${userId}/curriculum`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        setCvData(result.data ?? null);
+      } else if (response.status === 404) {
+        setCvData(null);
+      }
+    } catch (error) {
+      console.error('Error obteniendo curriculum:', error);
+    } finally {
+      setIsLoadingCv(false);
+    }
+  };
+
+  // Cargar datos de texto desde store user
   useEffect(() => {
     if (user) {
       setForm((prev) => ({
         ...prev,
-        escolaridad: user.scholarship || '',  
-        carrera: user.degree || '',           
-        resumen: user.summary || '',          
-        experiencia: user.experience || '',   
+        escolaridad: user.scholarship || '',
+        carrera: user.degree || '',
+        resumen: user.summary || '',
+        experiencia: user.experience || '',
         puestoInteres: user.interestJob || '',
       }));
     }
   }, [user]);
 
-  // Cargar CV
+  // Cargar CV (GET)
   useEffect(() => {
-    const fetchCurriculum = async () => {
-      if (!userId || !token) return;
-
-      try {
-        const response = await fetch(`/api/v1/users/${userId}/curriculum`, {
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`,
-          },
-        });
-
-        if (response.ok) {
-          const result = await response.json();
-          if (result.data) {
-            setCvData(result.data);
-          }
-        } else if (response.status === 404) {
-          setCvData(null);
-        }
-      } catch (error) {
-        console.error("Error obteniendo curriculum:", error);
-      } finally {
-        setIsLoadingCv(false);
-      }
-    };
-
     fetchCurriculum();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userId, token]);
 
-  // 3. HANDLERS
+  // Handlers form
   const handleChange = (key: string, value: string) => {
     setForm((prev) => ({ ...prev, [key]: value }));
     setProfileErrors((e) => ({ ...e, [key]: '' }));
@@ -95,12 +95,14 @@ export default function ProfessionalSummary() {
   const validateProfileFields = () => {
     const errors: Record<string, string> = {};
     const requiredFields = ['escolaridad', 'carrera', 'experiencia', 'puestoInteres'];
+
     requiredFields.forEach((k) => {
       const v = (form as any)[k];
       if (!v || (typeof v === 'string' && v.trim() === '')) {
         errors[k] = 'No puede quedar vacío';
       }
     });
+
     return errors;
   };
 
@@ -108,27 +110,17 @@ export default function ProfessionalSummary() {
     const errors = validateProfileFields();
     if (Object.keys(errors).length > 0) {
       setProfileErrors(errors);
-      setIsEditingProfile(true); 
+      setIsEditingProfile(true);
       return;
     }
+
     console.log('Saving profile data:', form);
     setProfileErrors({});
     setIsEditingProfile(false);
   };
 
-  // Handlers para el Componente de CV
-  const openUploadModal = () => {
-    console.log("Abrir modal para subir CV...");
-    alert("Aquí se debe abrir el modal para cargar el archivo PDF.");
-  };
-
-  const handleRemoveCv = async () => {
-    if(!confirm("¿Estás seguro de eliminar tu CV?")) return;
-    console.log("Eliminando CV...");
-    
-    // Aquí tu fetch DELETE...
-    setCvData(null); 
-  };
+  // ✅ CV Handlers: abrir modal (upload/update hacen lo mismo)
+  const openCvModal = () => setIsCvModalOpen(true);
 
   const sectionConfig = {
     profile: {
@@ -145,7 +137,7 @@ export default function ProfessionalSummary() {
       </div>
     );
   }
-  console.log(form)
+
   return (
     <div className="mr-20 space-y-6 p-4 md:p-6">
       <TitleSection sections={sectionConfig} currentSection="profile" />
@@ -162,7 +154,7 @@ export default function ProfessionalSummary() {
           onEditClick={() => {
             setProfileErrors({});
             setIsEditingProfile((s) => !s);
-          }} 
+          }}
         />
 
         <div className="px-6">
@@ -172,12 +164,9 @@ export default function ProfessionalSummary() {
             options={educationLevels}
             editInput={isEditingProfile}
             valueinput={form.escolaridad}
-            onValueChange={(v) => handleChange('escolaridad', v)} 
+            onValueChange={(v) => handleChange('escolaridad', v)}
             externalError={profileErrors.escolaridad}
           />
-
-
-
         </div>
 
         <div className="px-6">
@@ -228,21 +217,31 @@ export default function ProfessionalSummary() {
         )}
       </div>
 
-      {/* --- SECCIÓN 2: CURRICULUM VITAE (Componente Nuevo) --- */}
+      {/* --- SECCIÓN 2: CURRICULUM VITAE --- */}
       <div className="rounded-lg border border-zinc-300 shadow-sm p-6 bg-white">
         <div className="mb-2">
           <h3 className="font-semibold text-lg">Curriculum Vitae</h3>
           <p className="text-sm text-gray-500">Gestione su archivo PDF para aplicar a vacantes.</p>
         </div>
-        
-        {/* Aquí integramos el componente visual que pediste */}
-        <CurriculumSection 
+
+        <CurriculumSection
           cvData={cvData}
           isLoading={isLoadingCv}
-          onUpload={openUploadModal}
-          onRemove={handleRemoveCv}
+          onUpload={openCvModal}
+          onUpdate={openCvModal} 
         />
       </div>
+
+     
+      {token && userId && (
+        <UpdateCvModal
+          open={isCvModalOpen}
+          onOpenChange={setIsCvModalOpen}
+          userId={userId!}
+          token={token!}
+          onSuccess={fetchCurriculum}
+/>
+      )}
     </div>
   );
 }
