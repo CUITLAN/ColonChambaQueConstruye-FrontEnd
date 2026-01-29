@@ -2,7 +2,7 @@
 
 import { Button } from '@/components/ui/button';
 import { FileSend } from '@solar-icons/react';
-// CORRECCIÓN 1: Importación nombrada { UploadedFile }
+
 import { UploadedFile } from '@/components/common/UploadedFile';
 
 interface CurriculumData {
@@ -15,14 +15,15 @@ interface CurriculumSectionProps {
   cvData: CurriculumData | null;
   isLoading: boolean;
   onUpload: () => void;
-  onRemove: () => void;
+  onUpdate: ()=> void;
 }
 
 export default function CurriculumSection({ 
   cvData, 
   isLoading, 
   onUpload, 
-  onRemove 
+  onUpdate
+
 }: CurriculumSectionProps) {
 
   if (isLoading) {
@@ -38,8 +39,8 @@ export default function CurriculumSection({
       {cvData == null ? (
         <Button
           type="button"
-          variant="primary" // Ajusta a 'outline' o 'ghost' si 'primary' no está definido en tu tema
-          color="gray" // Propiedad personalizada que vi en tu ejemplo original
+          variant="primary" 
+          color="gray" 
           className="h-[60px] flex-1 [&_svg]:!h-12 [&_svg]:!w-12 bg-white border border-dashed border-gray-300 hover:bg-gray-50 text-black shadow-none flex justify-start px-6"
           onClick={onUpload}
         >
@@ -53,14 +54,13 @@ export default function CurriculumSection({
         </Button>
       ) : (
         <div className="w-full">
-          {/* CORRECCIÓN 2: Pasamos la URL directamente como string */}
           <UploadedFile
-            file={cvData.curriculumUrl} 
+            file={cvData.curriculumUrl}
             defaultFileName={cvData.title || "Curriculum.pdf"}
             action="upload"
-            onRemove={onRemove}
+            
           />
-          {/* Enlace opcional de respaldo */}
+          
           <div className='mt-2 text-xs text-right'>
             <a 
               href={cvData.curriculumUrl} 
@@ -71,6 +71,13 @@ export default function CurriculumSection({
               Abrir PDF en nueva pestaña
             </a>
           </div>
+
+          <div className=''>
+            <Button type='button' variant={"primary"} onClick={onUpdate}>
+            Actualizar
+          </Button>
+          </div>
+
         </div>
       )}
     </div>

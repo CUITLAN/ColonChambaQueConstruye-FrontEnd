@@ -8,12 +8,10 @@ import { listAreasOptionsConstants, listWorkingHoursOptionsConstants } from '@/c
 import DrawerLinkerVacancies from '../DrawerVacante/DrawerLinkerVacancies';
 import { CompanyData, JobCardProps } from '@/interfaces';
 import DrawerLinkerCompany from './DrawerLinkerCompanie';
-import { Company } from '../../interfaces/company';
-import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
+import { Avatar, AvatarFallback } from '../ui/avatar';
 
-
+// --- COLUMNAS DE VACANTES ---
 export const vacanciesLinkerColumns: ColumnDef<JobCardProps>[] = [
-  // alias "name" para compatibilidad con DataTable / TableSearchBar
   {
     id: 'name',
     accessorFn: (row) => row.title ?? '',
@@ -32,23 +30,23 @@ export const vacanciesLinkerColumns: ColumnDef<JobCardProps>[] = [
     filterFn: accentInsensitiveTextFilter,
   },
   {
-  accessorKey: 'schedule',
-  cell: ({ getValue }) => {
-    const raw = getValue<string>();
-    const map: Record<string, string> = {
-      TIEMPO_COMPLETO: 'Tiempo Completo',
-      MEDIO_TIEMPO: 'Medio Tiempo',
-      HORARIO_FLEXIBLE: 'Horario Flexible',
-      PAGO_HORA: 'Pago por hora',
-      PRACTICAS: 'Prácticas',
-    };
-    return map[raw] ?? raw;
+    accessorKey: 'schedule',
+    cell: ({ getValue }) => {
+      const raw = getValue<string>();
+      const map: Record<string, string> = {
+        TIEMPO_COMPLETO: 'Tiempo Completo',
+        MEDIO_TIEMPO: 'Medio Tiempo',
+        HORARIO_FLEXIBLE: 'Horario Flexible',
+        PAGO_HORA: 'Pago por hora',
+        PRACTICAS: 'Prácticas',
+      };
+      return map[raw] ?? raw;
+    },
+    header: ({ column }) => (
+      <SortButton column={column} name="Tipo de jornada" />
+    ),
+    filterFn: accentInsensitiveTextFilter,
   },
-  header: ({ column }) => (
-    <SortButton column={column} name="Tipo de jornada" />
-  ),
-  filterFn: accentInsensitiveTextFilter,
-},
   {
     accessorKey: 'createdAt',
     cell: ({ getValue }) => dateToLocaleDateString(getValue() as string),
@@ -56,17 +54,24 @@ export const vacanciesLinkerColumns: ColumnDef<JobCardProps>[] = [
     filterFn: dateSameDay,
   },
   {
-    header: '  ',
+    header: ' ',
     id: 'actions',
     cell: ({ row }) => {
-      const id = (row.original as JobCardProps).id;
+      // CORRECCIÓN AQUÍ:
+      // Solo pasamos 'job' y 'sideDrawer'. 
+      // Eliminamos 'company' y 'logoUrl' porque el componente ya no las pide.
       return (
-        <DrawerLinkerVacancies job={row.original as JobCardProps} sideDrawer='right' open={false} company={(row.original as JobCardProps).company} logoUrl={(row.original as JobCardProps).logoUrl} />
+        <DrawerLinkerVacancies 
+            job={row.original} 
+            sideDrawer='right' 
+            open={false} 
+        />
       );
     },
   },
 ];
 
+// --- FILTROS VACANTES ---
 export const filtersLinkerVacancies: filterType[] = [
   {
     value: 'sector',
@@ -85,11 +90,11 @@ export const filtersLinkerVacancies: filterType[] = [
   }
 ]
 
+// --- COLUMNAS DE EMPRESAS (COMPANIES) ---
 export const companiesLinkerColumns: ColumnDef<CompanyData>[] = [
   {
-    
     id: 'name',
-    accessorFn: (row) => row.Company.tradeName ?? '', // CLAVE 1: Acceso directo
+    accessorFn: (row) => row.Company.tradeName ?? '', 
     header: ({ column }) => <SortButton column={column} name="Nombre de la empresa" />,
     cell: ({ row }) => (
       <div className="flex items-center gap-3">
@@ -131,7 +136,8 @@ export const companiesLinkerColumns: ColumnDef<CompanyData>[] = [
   }
 ];
 
-    export const filtersLinkerCompanies: filterType[] = [
+// --- FILTROS EMPRESAS ---
+export const filtersLinkerCompanies: filterType[] = [
   {
     value: 'workSector',
     name: 'Giro de la empresa',
@@ -143,5 +149,3 @@ export const companiesLinkerColumns: ColumnDef<CompanyData>[] = [
     isDate: true,
   }
 ]
-
-

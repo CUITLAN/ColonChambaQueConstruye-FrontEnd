@@ -1,5 +1,6 @@
 'use client';
 
+import React, { useState } from 'react';
 import FormInput from '@/components/forms/FormInput';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
@@ -11,8 +12,11 @@ import { authService } from '@/services/auth.service';
 import { toast } from 'sonner';
 import { useRouter } from 'next/navigation';
 import { useApplicantStore } from '@/app/store/authApplicantStore';
+import Alert from '@/components/ui/Alerts';
 
 export default function PublicLogin() {
+  const [showErrorAlert, setShowErrorAlert] = useState(false);
+
   const methods = useForm<LoginFormType>({
     resolver: zodResolver(loginSchema),
     defaultValues: {
@@ -27,44 +31,59 @@ export default function PublicLogin() {
   const router = useRouter();
   const loginAction = useApplicantStore((state) => state.login);
 
-const onSubmit = async (data: LoginFormType) => {
-  try {
+  const onSubmit = async (data: LoginFormType) => {
+    setShowErrorAlert(false); 
 
-    const email = data.email.toLowerCase().trim()
-    const password = data.password.trim()
-
-    const response = await authService.loginAccount(email, password, 'user');
-    
-    const user = response.data
+    try {
+      const response = await authService.loginAccount(data.email, data.password, 'user');
+      const user = response.data;
   
-    if(user.status === "ACTIVO"){
-      loginAction(user); 
-        
-      toast.success('Inicio de sesión exitoso');
-      router.push("/applicant/jobs");
-      return;
+      if(user.status === "ACTIVO"){
+        loginAction(user); 
+        toast.success('Inicio de sesión exitoso');
+        router.push("/applicant/jobs");
+        return;
+      }
+
+      if(user.status === "REVISION"){
+        toast.info('Tu cuenta está en revisión');
+        router.push("/login/waiting");
+        return;
+      }
+
+      toast.error("Ha sucedido algo extraño");
+
+    } catch (error: any) {
+      console.error('Error en login:', error.message);
+
+      if (
+        error.message?.includes("User doesn't exist") || 
+        error.message?.includes("404") ||
+        error.message?.includes("Not Found") ||
+        error.message?.includes("Bad credentials")  ||
+        error.message?.includes("401")
+      ) {
+        setShowErrorAlert(true);
+      } else {
+        toast.error(error.message || 'Error al iniciar sesión');
+      }
     }
-
-    if(user.status === "REVISION"){
-      toast.info('Tu cuenta está en revisión');
-      router.push("/login/waiting");
-      return;
-    }
-
-    toast.error("Ha sucedido algo extraño");
-    
-
-    
-  } catch (error:any) {
-    
-    console.error('Error en login:', error.message);
-    toast.error(error.message || 'Error al iniciar sesión');
-  }
-};
+  };
 
   return (
     <>
       <Headersimple />
+      
+      {/* Hola soy la alerta, aqui muestro que voy a decir Jijijija  
+      */}
+      <Alert 
+        isVisible={showErrorAlert}
+        onClose={() => setShowErrorAlert(false)}
+        type="error"
+        title="Credenciales inválidas"
+        description="Datos incorrectos, inténtelo nuevamente."
+      />
+      
       <div
         className="flex min-h-screen flex-col items-center justify-center py-15"
         style={{
@@ -75,21 +94,23 @@ const onSubmit = async (data: LoginFormType) => {
         }}
       >
         <main className="flex h-fit flex-col items-center justify-center gap-10">
-
-
           <div className="h-full max-w-2xl space-y-8 rounded-md border border-gray-300 bg-white p-12 gap-8 w-[696px] shadow-sm">
             <div className="flex flex-col items-center gap-4">
               <h1 className="text-xl font-normal leading-none tracking-normal text-center text-[#FF7F40]">
                 Inicio de sesión
               </h1>
-
             </div>
 
             <FormProvider {...methods}>
-              <form onSubmit={handleSubmit(onSubmit)} className="mt-8 space-y-4">
+              <form 
+                onSubmit={handleSubmit(onSubmit)} 
+                className="mt-8 space-y-4"
+                onChange={() => {
+                   if(showErrorAlert) setShowErrorAlert(false);
+                }}
+              >
                 <div className="space-y-10">
                   <div>
-                    
                     <FormInput
                       control={control}
                       name="email"
@@ -100,9 +121,7 @@ const onSubmit = async (data: LoginFormType) => {
                     <p className="mt-2 text-xs text-zinc-700">
                       Ingresa tu correo electrónico registrado.
                     </p>
-
                   </div>
-
 
                   <div>
                     <FormInput
@@ -116,10 +135,9 @@ const onSubmit = async (data: LoginFormType) => {
                       Escribe tu contraseña de acceso.
                     </p>
                   </div>
-
                 </div>
 
-                <div >
+                <div>
                   <Link
                     href="/login/recovery"
                     className="block text-right font-medium no-underline hover:no-underline focus:no-underline"
@@ -137,19 +155,17 @@ const onSubmit = async (data: LoginFormType) => {
                     </Link>
                   </p>
 
-                  <Button variant="primary" 
-        color="brand" 
-        type="submit"
-        >
-  Iniciar sesión
-</Button>
+                  <Button 
+                    variant="primary" 
+                    color="brand" 
+                    type="submit"
+                  >
+                    Iniciar sesión
+                  </Button>
                   
                 </div>
               </form>
             </FormProvider>
-
-            <div className="space-y-2 text-center text-sm text-gray-600">
-            </div>
           </div>
         </main>
       </div>

@@ -9,7 +9,6 @@ export default function Page() {
 
     return (
         <div className='items-center'>
-            <Header/>
             <p className='height-200'></p>
             <HeaderLinker/>
             <p className='height-200'></p>

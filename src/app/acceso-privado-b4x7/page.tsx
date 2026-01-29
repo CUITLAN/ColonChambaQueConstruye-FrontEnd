@@ -106,7 +106,7 @@ export default function PublicLogin() {
                       maxChars={244}
                     />
                     <p className="mt-2 text-xs text-zinc-700">
-                      Ingresa tu correo electrónico registrado.
+                      Usuario Administrador.
                     </p>
                   </div>
 
@@ -119,35 +119,15 @@ export default function PublicLogin() {
                       maxChars={50}
                     />
                     <p className="mt-2 text-xs text-zinc-700">
-                      Escribe tu contraseña de acceso.
+                      Escribe la contraseña de Admin
                     </p>
                   </div>
                 </div>
 
-                <div>
-                  <Link
-                    href="/login/recovery"
-                    className="block text-right font-medium no-underline hover:no-underline focus:no-underline"
-                    onClick={() =>
-                      console.log("Le diste click a 'olvidaste contraseña'")
-                    }
-                  >
-                    ¿Olvidaste tu contraseña?
-                  </Link>
-                </div>
+                
 
-                <div className="flex items-center justify-between">
-                  <p className="flex items-center gap-1 text-sm">
-                    ¿No tienes cuenta?
-                    <Link
-                      href="../signup/applicant/"
-                      className="font-medium no-underline text-[#FF7F40]"
-                      onClick={() => console.log('Le diste click a Registrate')}
-                    >
-                      Regístrate
-                    </Link>
-                  </p>
-
+                <div className="flex items-center justify-end">
+                  
                   <Button
                     variant="primary"
                     color="brand"

@@ -40,12 +40,9 @@ export default function UniversalCardsFilter<T>({
     name: '', 
   });
 
-  // EFECTO DE SINCRONIZACIÓN:
-  // Si activeFilters cambia (ej: limpiamos filtros desde fuera), actualizamos el estado interno
   React.useEffect(() => {
     if (activeFilters) {
       setFiltersState((prev) => {
-        // Hacemos un merge inteligente para no sobreescribir 'name' (búsqueda texto) si no es necesario
         const nextState = { ...prev };
         let hasChanges = false;
         
@@ -66,10 +63,8 @@ export default function UniversalCardsFilter<T>({
         getFilterValue: () => filtersState[columnId],
         
         setFilterValue: (value: unknown) => {
-          // 1. Actualización visual local inmediata
           setFiltersState((prev) => ({ ...prev, [columnId]: value }));
 
-          // 2. Notificación al padre para petición API
           if (onFilterChange) {
             let valueToSend: string | string[] | null = null;
 
@@ -94,7 +89,6 @@ export default function UniversalCardsFilter<T>({
     [filtersState, onFilterChange]
   );
 
-  // Lógica de filtrado local (se mantiene para búsquedas por texto 'name' y retrocompatibilidad)
   const filtered = React.useMemo(() => {
     const q = (filtersState['name'] as string) ?? '';
 
@@ -121,7 +115,6 @@ export default function UniversalCardsFilter<T>({
       const globalPass = accessors.name ? includesNorm(accessors.name(it), q) : true;
       if (!globalPass) return false;
 
-      // Nota: Si items ya viene filtrado del backend, esto solo re-valida lo que ya es true
       for (const f of filters) {
         const key = f.value;
         const sel = filtersState[key];
@@ -160,7 +153,6 @@ export default function UniversalCardsFilter<T>({
 
   return (
     <div className="space-y-4">
-      {/* Tu componente TableSearchBar se mantiene intacto */}
       <TableSearchBar filters={filters} table={tableAdapter} />
       {render(filtered)}
     </div>

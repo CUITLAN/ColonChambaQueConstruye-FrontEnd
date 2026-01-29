@@ -1,5 +1,3 @@
-import Image from 'next/image';
-import { Balloon, Buildings, Calendar, ClockCircle, Dollar, Gps, MapPoint, User, Letter, PhoneCalling, AddCircle, InboxIn } from '@solar-icons/react';
 import { JobCardProps } from '@/interfaces';
 import {
   Drawer,
@@ -10,8 +8,7 @@ import {
   DrawerTrigger,
 } from "@/components/ui/drawer"
 import { Button } from '../ui/button';
-import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
-import { workShiftLabelMap } from '@/app/linker/home/vacancies/rejected/page';
+import { workShiftLabelMap } from '@/constants';
 import { Separator } from '../ui/separator';
 import AllowVacancyModal from '../ui/modal/AllowVacancy';
 import { useState, useRef, useEffect } from 'react';
@@ -33,10 +30,8 @@ export default function DrawerLinkerVacancies({
   company,
   logoUrl,
 }: DrawerLinkerVacanciesProps) {
-  // DEBUG: mostrar en consola para verificar que el componente se monta y qué recibe
   console.log('DrawerLinkerVacancies mounted — job:', job);
 
-  // si no hay job, mostrar un marcador visible para depuración en vez de return null
   if (!job) {
     return (
       <div className="p-4 border rounded bg-yellow-50 text-sm text-uaq-danger">
@@ -45,18 +40,14 @@ export default function DrawerLinkerVacancies({
     );
   }
 
-  // determine controlled only when both open & onOpenChange are provided
   const isControlled = typeof open === 'boolean' && typeof onOpenChange === 'function';
 
-  // internal state (used when uncontrolled or when parent passes open without onOpenChange)
   const [internalOpen, setInternalOpen] = useState<boolean>(open ?? false);
 
-  // keep internal sync if parent changes open while uncontrolled
   useEffect(() => {
     if (!isControlled && typeof open === 'boolean') {
       setInternalOpen(open);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
   const getOpen = () => (isControlled ? open! : internalOpen);
@@ -68,7 +59,6 @@ export default function DrawerLinkerVacancies({
     }
   };
 
-  // modal control + timer to wait drawer close animation
   const [showAllowVacancy, setShowAllowVacancy] = useState(false);
   const [showRejectVacancy, setShowRejectVacancy] = useState(false);
   const modalTimerRef = useRef<number | null>(null);
@@ -83,20 +73,17 @@ export default function DrawerLinkerVacancies({
   }, []);
 
   const openModalAfterDrawerClose = (setter: (v: boolean) => void) => {
-    // close drawer first
     setOpen(false);
 
-    // clear previous timers
     if (modalTimerRef.current) {
       clearTimeout(modalTimerRef.current);
       modalTimerRef.current = null;
     }
 
-    // wait drawer close animation, then open modal
     modalTimerRef.current = window.setTimeout(() => {
       setter(true);
       modalTimerRef.current = null;
-    }, 280); // ajustar si la animación del Drawer tiene otra duración
+    }, 280); 
   };
 
   const handleAllowConfirm = () => setShowAllowVacancy(false);

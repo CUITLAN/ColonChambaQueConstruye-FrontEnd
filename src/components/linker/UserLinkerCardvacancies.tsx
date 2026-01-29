@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/drawer"
 import { Button } from '../ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
-import { workShiftLabelMap } from '@/app/linker/home/vacancies/rejected/page';
+import { workShiftLabelMap } from '@/constants';
 import { Separator } from '../ui/separator';
 import { DataVacancies } from '../../data/testDataVacancies';
 import { stat } from 'fs';
@@ -30,28 +30,24 @@ function getInitials(company: string) {
         .split(' ')
         .map((word) => word.charAt(0).toUpperCase())
         .join('')
-        .slice(0, 2); // Limitar a las primeras dos letras
+        .slice(0, 2); 
 }
 
 function daysSince(date: string): number {
   const today = new Date();
   const registeredDate = new Date(date);
-  // Se trata de normalizar ambas fechas a medianoche local
   today.setHours(0, 0, 0, 0);
   registeredDate.setHours(0, 0, 0, 0);
 
-  //Se obtiene los dias de diferencia en milisegundos por lo que se regresa convertido a dias truncandolo
   const diffMs = today.getTime() - registeredDate.getTime();
   return Math.floor(diffMs / (1000 * 60 * 60 * 24));
 }
 
  function  handleAcceptVacancy(id: string) {
-   // Lógica para aceptar la vacante
    console.log(`Vacante con ID ${id} aceptada.`);
  }
 
  function handleRejectVacancy(id: string) {
-   // Lógica para rechazar la vacante
    console.log(`Vacante con ID ${id} rechazada.`);
  }
 
@@ -62,9 +58,7 @@ export default function UserLinkerVacanciesCard({
     const initials = getInitials(company);
 
   return (
-    //Job Card Container
     <div className="hover:border-uaq-brand-800 group flex flex-col rounded-lg border border-zinc-300 shadow-sm transition-all duration-300 hover:translate-y-[-2px] hover:shadow-md">
-      {/* Fila 1 - Logo de la empresa, nombre del trabajo, nobmre de la empresa, jornada y modalidad */}
         <Drawer direction={sideDrawer === "left" ? "left" : "right"}>
           <div className="flex flex-row max-w-full items-center align-middle justify-between p-3">
             <div className="flex-shrink-0 rounded-l-lg pl-4 transition-colors duration-300">
@@ -105,7 +99,7 @@ export default function UserLinkerVacanciesCard({
 
             <div className="flex flex-1 flex-col px-4 py-4 transition-colors duration-300">
               <div className="flex-1 space-y-1 text-start">
-                <div className="text-start font-[400] text-gray-600">{job.description /* Descripción del trabajo */}</div>
+                <div className="text-start font-[400] text-gray-600 line-clamp-3 break-all">{job.description /* Descripción del trabajo */}</div>
               </div>
             </div>
           </div>

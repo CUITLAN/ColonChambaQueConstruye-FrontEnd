@@ -1,14 +1,55 @@
-// components/ui/alertas/Alert.tsx
-import {ReactElement} from "react";
-import {DangerCircle} from '@solar-icons/react';
+import { useEffect, useState } from "react";
+import { DangerCircle } from '@solar-icons/react';
 
 interface AlertProps {
   type: 'error' | 'warning';
   title: string;
   description: string;
+  isVisible: boolean;
+  onClose: () => void;
+  duration?: number;
 }
 
-export default function Alert({type, title, description}: AlertProps) {
+export default function Alert({
+  type,
+  title,
+  description,
+  isVisible,
+  onClose,
+  duration = 2500
+}: AlertProps) {
+
+  const [isMounted, setIsMounted] = useState(false);
+  const [isFadingIn, setIsFadingIn] = useState(false);
+
+  useEffect(() => {
+    if (isVisible) {
+      setIsMounted(true);
+      const timerIn = setTimeout(() => {
+        setIsFadingIn(true);
+      }, 50);
+      return () => clearTimeout(timerIn);
+    } else {
+      setIsFadingIn(false);
+      const timerOut = setTimeout(() => {
+        setIsMounted(false);
+      }, 500);
+      return () => clearTimeout(timerOut);
+    }
+  }, [isVisible]);
+
+  useEffect(() => {
+    let autoCloseTimer: NodeJS.Timeout;
+    if (isVisible && duration > 0) {
+      autoCloseTimer = setTimeout(() => {
+        onClose();
+      }, duration);
+    }
+    return () => clearTimeout(autoCloseTimer);
+  }, [isVisible, duration, onClose]);
+
+  if (!isMounted) return null;
+
   const styles = {
     error: {
       border: 'border-uaq-danger',
@@ -22,14 +63,23 @@ export default function Alert({type, title, description}: AlertProps) {
     },
   };
 
-  const {border, text, icon} = styles[type];
+  const { border, text, icon } = styles[type];
+
+  const animationClasses = isFadingIn
+    ? "opacity-100 translate-y-0"
+    : "opacity-0 translate-y-8";
 
   return (
-    <div className={`m-5 p-4 ${border} border-2 rounded-xl flex bg-zinc-50 max-w-xl`}>
-      {icon}
-      <div className="flex flex-col gap-3">
-        <span className={`flex font-bold ${text}`}>{title}</span>
-        <p className={text}>{description}</p>
+    <div
+      className={`fixed bottom-10 left-0 right-0 z-50 flex justify-center px-4
+        transition-all duration-500 ease-in-out transform ${animationClasses}`}
+    >
+      <div className={`m-5 p-4 ${border} border-2 rounded-xl flex items-center bg-zinc-50 max-w-xl shadow-lg`}>
+        {icon}
+        <div className="flex flex-col gap-3 items-start">
+          <span className={`font-bold text-left ${text}`}>{title}</span>
+          <p className={`text-left ${text}`}>{description}</p>
+        </div>
       </div>
     </div>
   );

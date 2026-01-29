@@ -39,16 +39,21 @@ export default function PaginationControl({
   const handleNext = () => onPageChange(Math.min(totalPages, currentPage + 1));
   const handleLast = () => onPageChange(totalPages);
 
+  // Determinar si los botones deben estar deshabilitados
+  const canPrevious = currentPage > 1;
+  const canNext = currentPage < totalPages;
+
   return (
     <div className="flex flex-col items-center justify-between gap-4 py-4 sm:flex-row sm:gap-6 lg:gap-8">
       
+      {/* Selector de Tamaño */}
       <div className="flex items-center space-x-2">
         <p className="text-sm font-medium text-gray-600">Filas por vista</p>
         <Select
           value={`${pageSize}`}
           onValueChange={(value) => onPageSizeChange(Number(value))}
         >
-          <SelectTrigger className="h-8 w-[70px]">
+          <SelectTrigger className="h-8 w-[70px] bg-white">
             <SelectValue placeholder={`${pageSize}`} />
           </SelectTrigger>
           <SelectContent side="top">
@@ -61,48 +66,50 @@ export default function PaginationControl({
         </Select>
       </div>
 
+      {/* Info de Página */}
       <div className="flex items-center justify-center text-sm font-medium text-gray-700">
         Página {currentPage} de {totalPages || 1} 
         {totalItems > 0 && <span className="ml-1 text-gray-400">({totalItems} registros)</span>}
       </div>
 
+      {/* Botones de Navegación */}
       <div className="flex items-center space-x-2">
         <Button
-          variant="ghost"
+          variant="outline"
           size="icon"
-          className="hidden size-8 lg:flex"
+          className="hidden size-8 lg:flex bg-white"
           onClick={handleFirst}
-          disabled={currentPage <= 1}
+          disabled={!canPrevious}
         >
           <span className="sr-only">Ir a la primera página</span>
           <DoubleAltArrowLeft />
         </Button>
         <Button
-          variant="ghost"
+          variant="outline"
           size="icon"
-          className="size-8"
+          className="size-8 bg-white"
           onClick={handlePrevious}
-          disabled={currentPage <= 1}
+          disabled={!canPrevious}
         >
           <span className="sr-only">Ir a la página anterior</span>
           <AltArrowLeft />
         </Button>
         <Button
-          variant="ghost"
+          variant="outline"
           size="icon"
-          className="size-8"
+          className="size-8 bg-white"
           onClick={handleNext}
-          disabled={currentPage >= totalPages}
+          disabled={!canNext}
         >
           <span className="sr-only">Ir a la página siguiente</span>
           <AltArrowRight />
         </Button>
         <Button
-          variant="ghost"
+          variant="outline"
           size="icon"
-          className="hidden size-8 lg:flex"
+          className="hidden size-8 lg:flex bg-white"
           onClick={handleLast}
-          disabled={currentPage >= totalPages}
+          disabled={!canNext}
         >
           <span className="sr-only">Ir a la última página</span>
           <DoubleAltArrowRight />

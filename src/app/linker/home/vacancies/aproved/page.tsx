@@ -1,87 +1,192 @@
 'use client';
 
-import { Industry } from '@/interfaces/industries';
-import UserLinkerVacanciesCard from '@/components/linker/UserLinkerCardvacancies';
-import { JobCardProps } from '@/interfaces/jobCard';
-import UniversalCardsFilter from '@/components/ui/UniversalCardFilter';
-import { filtersVacancies } from '@/data/filtersVacancies';
+import React, { useEffect, useState } from 'react';
 import { FileRemove, InboxIn } from '@solar-icons/react';
-import { AdminNavbarMenu } from '@/components/navigation/AdminNavbarMenu';
+
+import UserLinkerVacanciesCard from '@/components/linker/UserLinkerCardvacancies';
+import UniversalCardsFilter from '@/components/ui/UniversalCardFilter';
+import PaginationControl from '@/components/navigation/paginationControl';
 import TitleSection from '@/components/common/TitleSection';
-import { JobCardsData } from '../rejected/page';
 
-type Filters = {
-  modality: string;
-  workdayType: string;
-  state: string;
-  industry?: Industry | ''
-  registerDate?:string
-};
+import { filtersVacancies } from '@/data/filtersVacancies';
+import { useApplicantStore } from '@/app/store/authApplicantStore';
+import { apiService } from '@/services/api.service';
 
-export const workShiftLabelMap: Record<string, string> = {
-  TIEMPO_COMPLETO: "Tiempo completo",
-  MEDIO_TIEMPO: "Medio tiempo",
-  HORARIO_FLEXIBLE: "Horario flexible",
-  PAGO_HORA: "Pago por hora",
-  PRACTICAS: "Prácticas",
-};
-
-// Datos de ejemplo: uno APROBADA, uno ABIERTA, uno CERRADA, otro RECHAZADA (no se mostrará)
+import { 
+  JobCardProps, 
+  BackendVacancyResponse, 
+  VacancyStatus 
+} from '@/interfaces/jobCard';
 
 export default function VacanciesGestorPage() {
+  const { id: linkerId } = useApplicantStore();
+  const [vacancies, setVacancies] = useState<JobCardProps[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10); 
+  const [totalItems, setTotalItems] = useState(0); 
+
   const sectionConfig = {
     talents: {
-      title: 'SOLICITUDES DE VACANTES APROBADAS ',
+      title: 'SOLICITUDES DE VACANTES APROBADAS',
       icon: <InboxIn size={24} weight="Bold" />,
       description: '',
     },
   };
 
-  // mostrar solo estados: ABIERTA, APROBADA, CERRADA, INACTIVA
-  const allowedStatuses = new Set(['ABIERTA', 'APROBADA', 'CERRADA', 'INACTIVA']);
-  const visibleJobs = JobCardsData.filter((job) =>
-    allowedStatuses.has(String(job.status ?? '').toUpperCase())
-  );
+  useEffect(() => {
+    const fetchVacancies = async () => {
+      if (!linkerId) return;
 
-  return (
-    <>
-      <div className="mx-32 flex flex-col gap-5 m-10">
-        <div className="">
-          <TitleSection sections={sectionConfig} currentSection={'talents'} />
-        </div>
-        <div className=''>
-          <UniversalCardsFilter<JobCardProps>
-            items={visibleJobs}
-            filters={filtersVacancies}
-            // accesors para que UniversalCardsFilter sepa cómo leer cada campo
-            accessors={{
-              name: (j) =>
-                `${j.title} ${j.company} ${j.sector} ${j.modality} ${j.schedule} ${j.description} ${j.location} ${j.createdAt}`,
-              sector: (j) => j.sector,
-              modality: (j) => j.modality,
-              workShift: (j) => j.schedule,
-              createdAt: (j) => j.createdAt,
-            }}
-            render={(filtered) => (
-              <div className="space-y-4">
-                {!filtered.length &&
-                <>
-                  <div className="flex flex-col items-center justify-center gap-4 m-10 text-gray-300 font-bold">
-                    <FileRemove className="w-50 h-50 text-gray-300" />
-                    <h1>NO SE ENCONTRARON RESULTADOS PARA TU BÚSQUEDA</h1>
-                    <h1>INTENTA CON OTRAS PALABRAS CLAVE O REVISA SI HAY ERRORES DE ESCRITURA</h1>
-                  </div>
-                </>
+      setLoading(true);
+      try {
+        const offset = (currentPage - 1) * pageSize;
+        const queryParams = new URLSearchParams({
+          status: 'APROBADA',
+          limit: pageSize.toString(), 
+        });
+        if (offset > 0) {
+          queryParams.append('offset', offset.toString());
+        }
+
+        const url = `/linkers/${linkerId}/vacancies?${queryParams.toString()}`;
+        console.log("Fetching Page:", currentPage, "URL:", url);
+
+        const response = await apiService.get(url);
+        const result: BackendVacancyResponse = await response.json();
+
+        if (result.data && Array.isArray(result.data.vacancies)) {
+          const serverVacancies = result.data.vacancies;
+          setTotalItems(result.data.total || 0);
+
+          const mappedVacancies: JobCardProps[] = serverVacancies.map((item) => {
+            
+              const ageRangeArray = item.Vacancy.ageRange;
+              const formattedAgeRange = (Array.isArray(ageRangeArray) && ageRangeArray.length === 2)
+                ? { min: ageRangeArray[0], max: ageRangeArray[1] }
+                : { min: 18, max: 65 }; 
+
+              return {
+                id: item.Vacancy.id,
+                status: (item.Vacancy.status || 'APROBADA') as VacancyStatus,
+                title: item.Vacancy.name,
+                company: item.Company.tradeName,
+                description: item.Vacancy.description || "No especificado|error",
+                location: item.Vacancy.location,
+                salaryRange: item.Vacancy.salary 
+                  ? `$${item.Vacancy.salary.min} - $${item.Vacancy.salary.max} ${item.Vacancy.salary.coin}`
+                  : "No especificado|error",
+                modality: item.Vacancy.modality,
+                schedule: item.Vacancy.workShift, 
+                createdAt: item.Vacancy.createdAt,
+                numberOfPositions: item.Vacancy.numberOpenings,              
+                sector: item.Vacancy.businessSector 
+                  ? item.Vacancy.businessSector.replace(/_/g, ' ') 
+                  : 'No especificado|error',
+                BenefitsSection: item.Vacancy.benefits || "No especificado|error",
+                degree: item.Vacancy.requiredDegree || "No especificado|error",
+                gender: item.Vacancy.gender || "No especificado|error",
+
+                ageRange: formattedAgeRange,
+
+                AdditionalInformation: item.Vacancy.additionalInformation || "No especificado|error",
+                RequiredExperience: item.Vacancy.experience || "No especificado|error",
+                cellPhone: item.Company.phone || "No especificado|error",
+                email: item.Company.email || "No especificado|error",
+                
+                companyDetails: {
+                  legalName: item.Company.legalName,
                 }
-                {filtered.map((job) => (
-                  <UserLinkerVacanciesCard key={job.title} job={job} company={job.company} />
-                ))}
-              </div>
-            )}
-            multiMode='OR'
-          />
-        </div>
+              };
+            });
+
+          setVacancies(mappedVacancies);
+        } else {
+          setVacancies([]);
+          setTotalItems(0);
+        }
+
+      } catch (error) {
+        console.error("Error fetching vacancies:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchVacancies();
+  }, [linkerId, currentPage, pageSize]); 
+
+  if (loading) {
+    return (
+      <div className="flex h-96 items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900"></div>
       </div>
-    </>
+    );
+  }
+
+  const totalPages = Math.ceil(totalItems / pageSize);
+  return (
+    <div className="mx-32 flex flex-col gap-5 m-10">
+      <div>
+        <TitleSection sections={sectionConfig} currentSection={'talents'} />
+      </div>
+
+      <div>
+        
+        <UniversalCardsFilter<JobCardProps>
+          items={vacancies}
+          filters={filtersVacancies}
+          accessors={{
+            name: (j) => `${j.title} ${j.company} ${j.description} ${j.location}`,
+            sector: (j) => j.sector,
+            modality: (j) => j.modality,
+            workShift: (j) => j.schedule,
+            createdAt: (j) => j.createdAt,
+          }}
+          render={(filteredItems) => (
+            <div className="space-y-4">
+              
+              {!filteredItems.length && (
+                <div className="flex flex-col items-center justify-center gap-4 m-10 text-gray-300 font-bold">
+                  <FileRemove className="w-20 h-20 text-gray-300" />
+                  <div className="text-center">
+                    <h1>NO SE ENCONTRARON RESULTADOS</h1>
+                    <h2 className="text-sm font-normal mt-2">INTENTA CON OTRAS PALABRAS CLAVE</h2>
+                  </div>
+                </div>
+              )}
+
+              {filteredItems.map((job) => (
+                <UserLinkerVacanciesCard 
+                  key={job.id} 
+                  job={job} 
+                  company={job.company}
+                  logoUrl={job.logoUrl}
+                />
+              ))}
+
+              <div className="mt-6 border-t pt-4">
+                <PaginationControl
+                  currentPage={currentPage}
+                  totalPages={totalPages}
+                  pageSize={pageSize}
+                  totalItems={totalItems}
+                  onPageChange={(page) => {
+                    setCurrentPage(page);
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                  }}
+                  onPageSizeChange={(size) => {
+                    setPageSize(size);
+                    setCurrentPage(1);
+                  }}
+                  pageSizeOptions={[10, 20, 30, 40, 50]}
+                />
+              </div>
+            </div>
+          )}
+          multiMode='OR'
+        />
+      </div>
+    </div>
   );
 }

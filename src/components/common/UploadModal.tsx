@@ -1,6 +1,6 @@
 'use client';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Card, CardContent, CardHeader, CardFooter } from '@/components/ui/card';
+import { Tabs, TabsContent } from '@/components/ui/tabs';
+import { Card, CardContent, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useCallback, useEffect, useState } from 'react';
 import { UploadFile } from './UploadFile';
@@ -9,6 +9,7 @@ import { UploadedFile } from './UploadedFile';
 interface UploadModalProps {
   onClose: () => void;
   onSave: (files: { spanishCV: File | null}) => void;
+  isSaving?:boolean
 }
 
 export type Language = 'spanish';

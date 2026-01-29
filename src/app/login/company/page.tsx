@@ -1,5 +1,6 @@
 'use client';
 
+import React, { useState } from 'react'; 
 import FormInput from '@/components/forms/FormInput';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
@@ -11,10 +12,13 @@ import { authService } from '@/services/auth.service';
 import { toast } from 'sonner';
 import { useRouter } from 'next/navigation';
 import { useCompanyStore } from '@/app/store/authCompanyStore';
+import Alert from '@/components/ui/Alerts';
 
 export default function PublicLogin() {
   const router = useRouter();
   const { login } = useCompanyStore();
+  
+  const [showErrorAlert, setShowErrorAlert] = useState(false);
 
   const methods = useForm<LoginFormType>({
     resolver: zodResolver(loginSchema),
@@ -28,8 +32,9 @@ export default function PublicLogin() {
   const { control, handleSubmit } = methods;
 
   const onSubmit = async (data: LoginFormType) => {
+    setShowErrorAlert(false);
+
     try {
-      // ✅ Normalizamos el correo antes de enviarlo
       const normalizedEmail = data.email.trim().toLowerCase();
 
       const response = await authService.loginAccount(
@@ -81,13 +86,35 @@ export default function PublicLogin() {
       }
     } catch (error: any) {
       console.error('Error en login:', error?.message);
-      toast.error(error?.message || 'Error al iniciar sesión');
+      
+      const errorMsg = error?.message || "";
+
+      if (
+        errorMsg.includes("User doesn't exist") || 
+        errorMsg.includes("Not Found") ||
+        errorMsg.includes("404") ||
+        errorMsg.includes("401") ||
+        errorMsg.includes("Bad credentials")
+      ) {
+        setShowErrorAlert(true);
+      } else {
+        toast.error(errorMsg || 'Error al iniciar sesión');
+      }
     }
   };
 
   return (
     <>
       <Headersimple />
+      
+      <Alert 
+        isVisible={showErrorAlert}
+        onClose={() => setShowErrorAlert(false)}
+        type="error"
+        title="Credenciales inválidas"
+        description="El correo o la contraseña son incorrectos."
+      />
+
       <div
         className="flex min-h-screen flex-col items-center justify-center py-15"
         style={{
@@ -106,7 +133,13 @@ export default function PublicLogin() {
             </div>
 
             <FormProvider {...methods}>
-              <form onSubmit={handleSubmit(onSubmit)} className="mt-8 space-y-4">
+              <form 
+                onSubmit={handleSubmit(onSubmit)} 
+                className="mt-8 space-y-4"
+                onChange={() => {
+                   if(showErrorAlert) setShowErrorAlert(false);
+                }}
+              >
                 <div className="space-y-10">
                   <div>
                     <FormInput
