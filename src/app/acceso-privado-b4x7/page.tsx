@@ -3,11 +3,10 @@
 import { useRouter } from 'next/navigation';
 import FormInput from '@/components/forms/FormInput';
 import { Button } from '@/components/ui/button';
-import Link from 'next/link';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm, FormProvider } from 'react-hook-form';
 import { LoginFormType, loginSchema } from '@/validations/loginSchema';
-
+import { loginResponseSchema } from '@/validations/loginSchema';
 import Headersimple from '@/components/ui/header-simple';
 import { apiService } from '@/services/api.service';
 import { useApplicantStore } from '../store/authApplicantStore';
@@ -31,6 +30,8 @@ export default function PublicLogin() {
 
   const router = useRouter();
 
+ // ... resto de imports
+
   const onSubmit = async (data: LoginFormType) => {
     try {
       console.log('Enviando datos de login...', data);
@@ -40,37 +41,31 @@ export default function PublicLogin() {
         password: data.password,
       });
 
-      if (!response) {
-        console.error('No hubo respuesta del servidor');
+      if (!response || !response.ok) {
+         console.error('Error en la petición al servidor');
+         return;
+      }
+
+      const rawJson = await response.json();
+
+      const result = loginResponseSchema.safeParse(rawJson);
+      if (!result.success) {
+        console.error("El backend devolvió un formato inesperado:", result.error);
         return;
       }
 
-      const json = await response.json();
-      console.log('Respuesta de login (SUCCESS):', json);
-
-      const token = json.data.data.token;
-      const id = json.data.data.id;
-      const email = json.email;
-      const status = json.status;
-
-      // Guardar en el store de applicant
+      const validatedData = result.data;
       loginApplicant({
-        id,
-        email,
-        status,
-        token,
+        id: validatedData.data.id,
+        token: validatedData.data.token,
+        email: validatedData.data.email,   
+        status: validatedData.data.status, 
       });
 
-      // Logs chidos pa' revisar
-      console.log('ESTE ES EL ID DEL LINKER/APPLICANT:', id);
-      console.log('ESTE ES EL TOKEN:', token);
-
-            if (response.status === 200) {
-        router.push('/linker/home/companies');
-      }
+      router.push('/linker/home/companies');
 
     } catch (error) {
-      console.error('Error en login:', error);
+      console.error('Error crítico en login:', error);
     }
   };
 

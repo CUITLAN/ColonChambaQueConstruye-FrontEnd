@@ -17,7 +17,6 @@ export function RecoverySetPasswordStep() {
     clearErrors,
   } = useFormContext<RecoveryPasswordFields>();
 
-  // Reglas de validación de contraseña
   const getPasswordErrors = (pw: string) => {
     const errors: string[] = [];
     if (!pw || pw.length < 8) errors.push('Mínimo 8 caracteres');
@@ -27,7 +26,6 @@ export function RecoverySetPasswordStep() {
     return errors;
   };
 
-  // Validación en tiempo real usando el formulario del padre
   React.useEffect(() => {
     const subscription = watch((value) => {
       const pw = value.password ?? '';
@@ -43,7 +41,6 @@ export function RecoverySetPasswordStep() {
         clearErrors('password');
       }
 
-      // Confirmar que coinciden las contraseñas
       if (cpw && pw !== cpw) {
         setError('confirmPassword', {
           type: 'manual',
@@ -67,7 +64,6 @@ export function RecoverySetPasswordStep() {
 
   return (
     <div className="space-y-8">
-      {/* Header de este step (solo contenido, sin layout global) */}
       <div className="flex flex-col items-center gap-4">
         <img
           src="/ADMON24-27-1-03.png"
@@ -82,7 +78,6 @@ export function RecoverySetPasswordStep() {
         </p>
       </div>
 
-      {/* Campos de contraseña */}
       <div className="space-y-10 mt-8">
         <FormInput
           control={control}

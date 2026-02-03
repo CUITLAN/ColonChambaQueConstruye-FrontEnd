@@ -12,11 +12,11 @@ import EmailVerificationCodeCompany from '@/components/ui/email-verification-cod
 import SignUpEmployerCompanySection from '@/components/employer/SignUpEmployerCompanySection';
 import { useRouter } from 'next/navigation';
 
-const SignUpEmployerAny = SignUpEmployer as React.ComponentType<any>;
+const SignUpEmployerAny = SignUpEmployer as React.ComponentType;
 const EmailVerificationCodeCompanyAny =
-  EmailVerificationCodeCompany as React.ComponentType<any>;
+  EmailVerificationCodeCompany as React.ComponentType;
 const SignUpEmployerCompanySectionAny =
-  SignUpEmployerCompanySection as React.ComponentType<any>;
+  SignUpEmployerCompanySection as React.ComponentType;
 
 export default function CompanySignup() {
   const [step, setStep] = useState(1);
@@ -56,15 +56,14 @@ export default function CompanySignup() {
           {/* Títulos por step */}
           <div className="mb-6 text-center">
             {step === 2 && (
-              <>
-                <h1 className="text-2xl font-semibold">
-                  Verifica el correo de tu empresa
-                </h1>
-                <p className="mt-2 text-sm text-gray-600">
-                  Ingresa el código que enviamos al correo registrado para
-                  continuar con el registro.
-                </p>
-              </>
+               <>
+                  <h1 className="text-2xl font-semibold">
+                    Verifica el correo de tu empresa
+                  </h1>
+                  <p className="mt-2 text-sm text-gray-600">
+                    Ingresa el código que enviamos al correo registrado para continuar con el registro.
+                  </p>
+                </>
             )}
 
             {step === 3 && (
@@ -83,9 +82,7 @@ export default function CompanySignup() {
           {/* Contenido de cada paso */}
           <div className="space-y-6">
             {step === 2 && (
-              <EmailVerificationCodeCompanyAny
-                onSuccess={() => setStep(3)}
-              />
+              <EmailVerificationCodeCompanyAny onSuccess={() => setStep(3)} />
             )}
 
             {step === 3 && (
