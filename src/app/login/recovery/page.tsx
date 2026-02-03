@@ -4,47 +4,53 @@ import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
 
-// Form & Validation
 import { useForm, FormProvider } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { recoverySchema, RecoveryFormType } from '@/validations/recoverySchema';
 
-// State Management
 import { useRecoveryStore } from '@/app/store/recoveryPasswordStore';
 
-// UI Components
 import HeaderSimple from '@/components/ui/header-simple';
 import { Button } from '@/components/ui/button';
-import Stepper from '@/components/common/Stepper';
 import FormInput from '@/components/forms/FormInput';
+import Alert from '@/components/common/Alert';
 
-// Steps Components
 import { EmailCodeValidationStep } from '@/components/auth/EmailCodeValidationStep';
 import { RecoverySetPasswordStep } from '@/components/recovey/RecoverySetPasswordStep';
 import { RecoverySuccessStep } from '@/components/recovey/RecoverySuccessStep';
 
-// Definición de la respuesta esperada de la API
 interface VerifyUserResponse {
   statusCode: number;
   message: string;
   data: {
-    ok: boolean;
-    verificationId: string;
+    success: boolean;
+    message: string;
+    sent: boolean;
+    verificationId?: string;
+    token?: string; 
   };
 }
 
 export default function RecoveryPage() {
   const [step, setStep] = useState(1);
-  const totalSteps = 4;
-
-  // Store de Zustand
-  const { setRecoveryData } = useRecoveryStore();
+  
+  const { setRecoveryData, email: storedEmail, token: storedToken } = useRecoveryStore();
 
   const [stepValid, setStepValid] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [codeIsLoading, setCodeIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [codeError, setCodeError] = useState<string | null>(null);
+
+  const [alertConfig, setAlertConfig] = useState<{
+    isVisible: boolean;
+    type: 'error' | 'warning';
+    title: string;
+    description: string;
+  }>({
+    isVisible: false,
+    type: 'error',
+    title: '',
+    description: '',
+  });
 
   const methods = useForm<RecoveryFormType>({
     resolver: zodResolver(recoverySchema),
@@ -59,7 +65,6 @@ export default function RecoveryPage() {
 
   const { control, trigger, watch, getValues } = methods;
 
-  // Validación dinámica
   useEffect(() => {
     const sub = watch((value) => {
       if (step === 1) {
@@ -67,20 +72,39 @@ export default function RecoveryPage() {
       } else if (step === 3) {
         setStepValid(
           !!value.password &&
-            !!value.confirmPassword &&
-            value.password === value.confirmPassword
+          !!value.confirmPassword &&
+          value.password === value.confirmPassword
         );
       } else {
         setStepValid(true);
       }
     });
-
     return () => sub.unsubscribe();
   }, [step, watch]);
 
+  const closeAlert = () => {
+    setAlertConfig((prev) => ({ ...prev, isVisible: false }));
+  };
+
+  const sendVerificationEmail = async (email: string) => {
+    const response = await fetch(`/api/v1/verifications/user`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email }),
+    });
+    
+    const result: VerifyUserResponse = await response.json();
+
+    const isSuccess = response.ok && (result.statusCode === 200 || result.statusCode === 201) && result.data?.success;
+    
+    if (!isSuccess) {
+      throw new Error('No se encontró el correo');
+    }
+    return result;
+  };
+
   const handleNextStep = async () => {
-    setError(null);
-    setCodeError(null);
+    closeAlert(); 
 
     if (step === 1) {
       const ok = await trigger('email');
@@ -89,34 +113,20 @@ export default function RecoveryPage() {
       setIsSubmitting(true);
       try {
         const { email } = getValues();
+        await sendVerificationEmail(email);
         
-        const response = await fetch(`/api/v1/verifications/user`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ email }),
-        });
-
-        const result: VerifyUserResponse = await response.json();
-
-        if (!response.ok || result.statusCode !== 201 || !result.data?.ok) {
-          throw new Error(result.message || 'El correo no se encuentra registrado o hubo un error.');
-        }
-
-        console.log('Usuario verificado, ID:', result.data.verificationId);
-        setRecoveryData(email, result.data.verificationId);
-
-        setStep(2);
+        console.log("Correo enviado exitosamente");
+        setStep(2); 
         setStepValid(true);
 
       } catch (err) {
-        console.error('Error enviando código de recuperación:', err);
-        setError(
-          err instanceof Error
-            ? err.message
-            : 'Ocurrió un error al verificar el correo. Intenta de nuevo.'
-        );
+        console.error(err);
+        setAlertConfig({
+          isVisible: true,
+          type: 'error',
+          title: 'Credenciales inválidas',
+          description: 'No se ha encontrado un correo asociado',
+        });
       } finally {
         setIsSubmitting(false);
       }
@@ -127,21 +137,41 @@ export default function RecoveryPage() {
       const ok = await trigger(['password', 'confirmPassword']);
       if (!ok) return;
 
+      if (!storedToken) {
+        setAlertConfig({ isVisible: true, type: 'error', title: 'Error', description: 'Sesión expirada. Inicia de nuevo.' });
+        setStep(1);
+        return;
+      }
+
       setIsSubmitting(true);
       try {
         const { email, password } = getValues();
-        console.log('Restablecer contraseña para:', email);
         
-        
-        setStep(4);
-        setStepValid(true);
+        const response = await fetch(`/api/v1/password-reset/user`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ 
+            email: email || storedEmail, 
+            newPassword: password,
+            token: storedToken 
+          }),
+        });
+
+        const result = await response.json();
+
+        if (response.ok && (result.statusCode === 200 || result.statusCode === 201) && result.data?.updated) {
+           setStep(4);
+        } else {
+           throw new Error('Error al actualizar');
+        }
+
       } catch (err) {
-        console.error('Error al cambiar contraseña:', err);
-        setError(
-          err instanceof Error
-            ? err.message
-            : 'No se pudo cambiar la contraseña. Intenta nuevamente.'
-        );
+        setAlertConfig({
+            isVisible: true,
+            type: 'error',
+            title: 'Error',
+            description: 'No se pudo cambiar la contraseña. Intenta nuevamente.',
+          });
       } finally {
         setIsSubmitting(false);
       }
@@ -149,36 +179,61 @@ export default function RecoveryPage() {
     }
   };
 
-  const handleCodeVerified = async (code: string) => {
-    setCodeError(null);
+  const handleCodeVerified = async (codeStr: string) => {
+    closeAlert();
     setCodeIsLoading(true);
+
     try {
       const { email } = getValues();
-      console.log('Código verificado:', { email, code });
-      setStep(3);
+      
+      const codeInt = parseInt(codeStr, 10);
+
+      if (isNaN(codeInt)) {
+        throw new Error('El código debe ser numérico');
+      }
+
+      const response = await fetch(`/api/v1/reset-password-verification/user`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+            email: email || storedEmail, 
+            code: codeInt 
+        }),
+      });
+
+      const result = await response.json(); 
+
+      if (response.ok && (result.statusCode === 200 || result.statusCode === 201) && result.data?.verified) {
+         
+         if (result.data.token) {
+             setRecoveryData(email || storedEmail || '', result.data.token);
+         }
+         
+         setStep(3); 
+      } else {
+         throw new Error('Código inválido');
+      }
+
     } catch (err) {
       console.error('Error al validar código:', err);
-      setCodeError(
-        err instanceof Error
-          ? err.message
-          : 'El código no es válido o ha expirado.'
-      );
+      setAlertConfig({
+        isVisible: true,
+        type: 'error',
+        title: 'Error de verificación',
+        description: 'Código incorrecto.',
+      });
     } finally {
       setCodeIsLoading(false);
     }
   };
 
   const handleResendCode = async () => {
-    setCodeError(null);
-    setCodeIsLoading(true);
+    closeAlert();
     try {
-      const { email } = getValues();
-      console.log('Reenviando código a:', email);
-    } catch (err) {
-      console.error('Error al reenviar:', err);
-      setCodeError('No se pudo reenviar el código.');
-    } finally {
-      setCodeIsLoading(false);
+        const { email } = getValues();
+        await sendVerificationEmail(email || storedEmail || '');
+    } catch (error) {
+        console.error("Error reenviando", error);
     }
   };
 
@@ -196,6 +251,14 @@ export default function RecoveryPage() {
     <>
       <HeaderSimple />
 
+      <Alert 
+        isVisible={alertConfig.isVisible}
+        onClose={closeAlert}
+        type={alertConfig.type}
+        title={alertConfig.title}
+        description={alertConfig.description}
+      />
+
       <div
         className="flex min-h-screen flex-col items-center justify-center py-1"
         style={{
@@ -207,8 +270,8 @@ export default function RecoveryPage() {
       >
         <main className="flex h-fit flex-col items-center justify-center gap-10">
           <div className="h-full w-full max-w-2xl space-y-8 rounded-md border border-gray-300 bg-white px-12 py-6 shadow-sm">
-            {/* Barra superior */}
-            <div className="mb-4 flex items-center gap-4">
+            
+            <div className="mb-4 flex items-center justify-start gap-4">
               {step === 1 ? (
                 <Link href="/">
                   <Button variant="ghost" className="scale-150">
@@ -225,29 +288,15 @@ export default function RecoveryPage() {
                   <ArrowLeft className="h-5 w-5" />
                 </Button>
               )}
-
-              <div className="flex-1">
-                <Stepper currentStep={step} totalSteps={totalSteps} />
-              </div>
             </div>
-
-            {error && (
-              <div className="rounded-md bg-red-50 p-3 text-sm text-red-700">
-                {error}
-              </div>
-            )}
 
             <FormProvider {...methods}>
               <div className="space-y-6">
-                {/* STEP 1 – Email */}
+                
                 {step === 1 && (
                   <div className="space-y-8">
                     <div className="flex flex-col items-center gap-4">
-                      <img
-                        src="/ADMON24-27-1-03.png"
-                        alt="Recuperación"
-                        className="scale-50"
-                      />
+                      <img src="/ADMON24-27-1-03.png" alt="Recuperación" className="scale-50" />
                       <h1 className="text-3xl font-medium -space-y-28">
                         ¿Olvidaste tu contraseña?
                       </h1>
@@ -272,16 +321,13 @@ export default function RecoveryPage() {
                 {step === 2 && (
                   <div className="space-y-4">
                     <EmailCodeValidationStep
-                      email={getValues('email') || 'Tu correo'}
+                      email={getValues('email') || storedEmail || ''}
                       onVerified={handleCodeVerified}
                       onBack={() => setStep(1)}
                       onResend={handleResendCode}
                     />
-                    {codeError && (
-                      <p className="text-sm text-center text-red-600">{codeError}</p>
-                    )}
                     {codeIsLoading && (
-                      <p className="text-xs text-center text-muted-foreground">Procesando...</p>
+                      <p className="text-xs text-center text-muted-foreground">Verificando código...</p>
                     )}
                   </div>
                 )}

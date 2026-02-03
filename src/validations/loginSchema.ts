@@ -17,3 +17,14 @@ export const loginSchema = z.object({
 });
 
 export type LoginFormType = z.infer<typeof loginSchema>;
+
+
+export const loginResponseSchema = z.object({
+ 
+  data: z.object({
+    token: z.string(),
+    id: z.string(),
+    email: z.string().email(),
+    status: z.string(),
+  }),
+});
