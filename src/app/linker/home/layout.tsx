@@ -4,7 +4,7 @@ import React, { useEffect, useState } from "react";
 import type { ReactNode, CSSProperties } from "react";
 import { useRouter } from "next/navigation";
 import AdminSideBar from "@/components/sidebar/AdminSideBar";
-import Header from "@/components/ui/header";
+import HeaderLinker from "@/components/ui/headerLinker";
 import { useApplicantStore } from "../../store/authApplicantStore";
 
 export default function LinkerLayout({ children }: { children: ReactNode }) {
@@ -70,7 +70,7 @@ export default function LinkerLayout({ children }: { children: ReactNode }) {
         "
       >
         <header className="w-full sticky top-0 z-40 !mb-0">
-          <Header />
+          <HeaderLinker />
         </header>
 
         <main className="flex-1">
