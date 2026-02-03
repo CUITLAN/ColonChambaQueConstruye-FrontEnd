@@ -2,19 +2,19 @@ import { create } from 'zustand';
 
 interface RecoveryState {
   email: string | null;
-  verificationId: string | null;
+  token: string | null; 
   
-  setRecoveryData: (email: string, verificationId: string) => void;
+  setRecoveryData: (email: string, token: string) => void;
   resetRecoveryData: () => void;
 }
 
 export const useRecoveryStore = create<RecoveryState>((set) => ({
   email: null,
-  verificationId: null,
+  token: null,
 
-  setRecoveryData: (email, verificationId) => 
-    set({ email, verificationId }),
+  setRecoveryData: (email, token) => 
+    set({ email, token }),
 
   resetRecoveryData: () => 
-    set({ email: null, verificationId: null }),
+    set({ email: null, token: null }),
 }));
