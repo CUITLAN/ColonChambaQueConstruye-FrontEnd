@@ -7,6 +7,7 @@ import AdminSideBar from "@/components/sidebar/AdminSideBar";
 import HeaderLinker from "@/components/ui/headerLinker";
 import { useApplicantStore } from "../../store/authApplicantStore";
 
+
 export default function LinkerLayout({ children }: { children: ReactNode }) {
   const router = useRouter();
 
