@@ -23,7 +23,7 @@ export class ApiService {
 
   async request(endpointPath: string, options: RequestInit = {}): Promise<Response> {
     const url = `${this.apiBaseUrl}${endpointPath}`;
-
+   
     const headers = {
       ...this.getHeaders(),
       ...((options.headers as Record<string, string>) || {}),
@@ -45,6 +45,7 @@ export class ApiService {
   }
 
   async get(endpoint: string): Promise<Response> {
+    
     return this.request(endpoint, { method: 'GET' });
   }
 
