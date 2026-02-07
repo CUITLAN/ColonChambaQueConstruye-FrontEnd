@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { useEmployerProfile } from '../layout';
 import { useAccountForm } from '@/components/forms/hooks/useCompanyData';
 import ModalNoticeReview from '@/components/ui/modal/employer/ModalNoticeReview';
+import ConfirmChangeModal from '@/components/ui/modal/employer/ConfirmChangeModal';
 
 export default function Page() {
   const { companyAccount, loading, error } = useEmployerProfile();
@@ -30,6 +31,8 @@ export default function Page() {
 
   // Estado para mostrar el modal de confirmación
   const [showNoticeModal, setShowNoticeModal] = useState(false);
+  // Estado para mostrar el modal de confirmación de cambios
+  const [showConfirmChangeModal, setShowConfirmChangeModal] = useState(false);
 
   const ReadOnlyRow = ({ label, value }: { label: string, value: string | number }) => (
     <div className="flex w-full items-center justify-between px-6 py-4 border-b border-zinc-100 min-h-[60px]">
@@ -179,9 +182,21 @@ export default function Page() {
 
         {isEditingPersonal && (
           <div className="flex justify-end px-6 pb-4 pt-2">
-            <Button variant="primary" onClick={handleSavePersonal}>
+            <Button variant="primary" onClick={() => setShowConfirmChangeModal(true)}>
               Guardar Cambios
             </Button>
+          </div>
+        )}
+
+        {showConfirmChangeModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+            <ConfirmChangeModal
+              onConfirm={() => {
+                setShowConfirmChangeModal(false);
+                handleSavePersonal();
+              }}
+              onClose={() => setShowConfirmChangeModal(false)}
+            />
           </div>
         )}
       </div>
