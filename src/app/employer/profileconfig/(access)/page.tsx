@@ -1,14 +1,12 @@
 'use client';
 
-import React, { useState } from 'react';
+import React from 'react';
 import TitleSection from '@/components/common/TitleSection';
 import { ConfigRow } from '@/components/settings/ConfigRow';
 import { UserCircle } from '@solar-icons/react';
 import { Button } from '@/components/ui/button';
 import { useEmployerProfile } from '../layout';
 import { useAccountForm } from '@/components/forms/hooks/useCompanyData';
-import ModalNoticeReview from '@/components/ui/modal/employer/ModalNoticeReview';
-import ConfirmChangeModal from '@/components/ui/modal/employer/ConfirmChangeModal';
 
 export default function Page() {
   const { companyAccount, loading, error } = useEmployerProfile();
@@ -28,11 +26,6 @@ export default function Page() {
     handleSavePersonal,
     handleSaveGeneral
   } = useAccountForm(companyAccount);
-
-  // Estado para mostrar el modal de confirmación
-  const [showNoticeModal, setShowNoticeModal] = useState(false);
-  // Estado para mostrar el modal de confirmación de cambios
-  const [showConfirmChangeModal, setShowConfirmChangeModal] = useState(false);
 
   const ReadOnlyRow = ({ label, value }: { label: string, value: string | number }) => (
     <div className="flex w-full items-center justify-between px-6 py-4 border-b border-zinc-100 min-h-[60px]">
@@ -67,41 +60,25 @@ export default function Page() {
           isTitle={true}
           isEditable={true}
           editInput={false}
-          onEditClick={() => setShowNoticeModal(true)}
+          onEditClick={() => setIsEditingPersonal(!isEditingPersonal)}
         />
-      {/* ...existing code... */}
-  {/* Modal para confirmar edición, overlay global */}
-  {showNoticeModal && (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-      <ModalNoticeReview
-        onConfirm={() => {
-          setIsEditingPersonal(true);
-          setShowNoticeModal(false);
-        }}
-        onClose={() => {
-          setIsEditingPersonal(false);
-          setShowNoticeModal(false);
-        }}
-      />
-    </div>
-  )}
 
         <div className="w-full">
-          {isEditingPersonal ? (
-            <div className="px-6">
-              <ConfigRow
-              title="Nombres"
-              valueinput={form.nombres}
-              isTitle={false}
-              isEditable={true}
-              editInput={true}
-              onValueChange={(v) => handleChange('nombres', v)}
-              externalError={errors.personal.nombres}
-              />
-            </div>
-          ) : (
-            <ReadOnlyRow label="Nombres" value={form.nombres} />
-          )}
+            {isEditingPersonal ? (
+                <div className="px-6">
+                    <ConfigRow
+                    title="Nombres"
+                    valueinput={form.nombres}
+                    isTitle={false}
+                    isEditable={true}
+                    editInput={true}
+                    onValueChange={(v) => handleChange('nombres', v)}
+                    externalError={errors.personal.nombres}
+                    />
+                </div>
+            ) : (
+                <ReadOnlyRow label="Nombres" value={form.nombres} />
+            )}
         </div>
 
         <div className="w-full">
@@ -182,21 +159,9 @@ export default function Page() {
 
         {isEditingPersonal && (
           <div className="flex justify-end px-6 pb-4 pt-2">
-            <Button variant="primary" onClick={() => setShowConfirmChangeModal(true)}>
+            <Button variant="primary" onClick={handleSavePersonal}>
               Guardar Cambios
             </Button>
-          </div>
-        )}
-
-        {showConfirmChangeModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-            <ConfirmChangeModal
-              onConfirm={() => {
-                setShowConfirmChangeModal(false);
-                handleSavePersonal();
-              }}
-              onClose={() => setShowConfirmChangeModal(false)}
-            />
           </div>
         )}
       </div>
