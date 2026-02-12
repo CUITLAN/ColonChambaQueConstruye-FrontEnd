@@ -39,14 +39,12 @@ export default function PaginationControl({
   const handleNext = () => onPageChange(Math.min(totalPages, currentPage + 1));
   const handleLast = () => onPageChange(totalPages);
 
-  // Determinar si los botones deben estar deshabilitados
   const canPrevious = currentPage > 1;
   const canNext = currentPage < totalPages;
 
   return (
     <div className="flex flex-col items-center justify-between gap-4 py-4 sm:flex-row sm:gap-6 lg:gap-8">
       
-      {/* Selector de Tamaño */}
       <div className="flex items-center space-x-2">
         <p className="text-sm font-medium text-gray-600">Filas por vista</p>
         <Select
@@ -66,16 +64,14 @@ export default function PaginationControl({
         </Select>
       </div>
 
-      {/* Info de Página */}
       <div className="flex items-center justify-center text-sm font-medium text-gray-700">
         Página {currentPage} de {totalPages || 1} 
         {totalItems > 0 && <span className="ml-1 text-gray-400">({totalItems} registros)</span>}
       </div>
 
-      {/* Botones de Navegación */}
       <div className="flex items-center space-x-2">
         <Button
-          variant="outline"
+          variant="primary"
           size="icon"
           className="hidden size-8 lg:flex bg-white"
           onClick={handleFirst}
@@ -85,7 +81,7 @@ export default function PaginationControl({
           <DoubleAltArrowLeft />
         </Button>
         <Button
-          variant="outline"
+          variant="primary"
           size="icon"
           className="size-8 bg-white"
           onClick={handlePrevious}
@@ -95,7 +91,7 @@ export default function PaginationControl({
           <AltArrowLeft />
         </Button>
         <Button
-          variant="outline"
+          variant="primary"
           size="icon"
           className="size-8 bg-white"
           onClick={handleNext}
@@ -105,7 +101,7 @@ export default function PaginationControl({
           <AltArrowRight />
         </Button>
         <Button
-          variant="outline"
+          variant="primary"
           size="icon"
           className="hidden size-8 lg:flex bg-white"
           onClick={handleLast}

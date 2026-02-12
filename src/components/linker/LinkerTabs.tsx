@@ -10,8 +10,7 @@ import { CompanyData, JobCardProps } from '@/interfaces';
 import DrawerLinkerCompany from './DrawerLinkerCompanie';
 import { Avatar, AvatarFallback } from '../ui/avatar';
 
-// --- COLUMNAS DE VACANTES ---
-export const vacanciesLinkerColumns: ColumnDef<JobCardProps>[] = [
+export const getVacanciesLinkerColumns = (onUpdate: () => void): ColumnDef<JobCardProps>[] => [
   {
     id: 'name',
     accessorFn: (row) => row.title ?? '',
@@ -57,21 +56,18 @@ export const vacanciesLinkerColumns: ColumnDef<JobCardProps>[] = [
     header: ' ',
     id: 'actions',
     cell: ({ row }) => {
-      // CORRECCIÓN AQUÍ:
-      // Solo pasamos 'job' y 'sideDrawer'. 
-      // Eliminamos 'company' y 'logoUrl' porque el componente ya no las pide.
       return (
         <DrawerLinkerVacancies 
             job={row.original} 
             sideDrawer='right' 
-            open={false} 
+            open={false}
+            onSuccess={onUpdate} 
         />
       );
     },
   },
 ];
 
-// --- FILTROS VACANTES ---
 export const filtersLinkerVacancies: filterType[] = [
   {
     value: 'sector',
@@ -90,7 +86,6 @@ export const filtersLinkerVacancies: filterType[] = [
   }
 ]
 
-// --- COLUMNAS DE EMPRESAS (COMPANIES) ---
 export const companiesLinkerColumns: ColumnDef<CompanyData>[] = [
   {
     id: 'name',
@@ -132,11 +127,10 @@ export const companiesLinkerColumns: ColumnDef<CompanyData>[] = [
           logoUrl={''} 
         />
       );
-    }
+    },
   }
 ];
 
-// --- FILTROS EMPRESAS ---
 export const filtersLinkerCompanies: filterType[] = [
   {
     value: 'workSector',

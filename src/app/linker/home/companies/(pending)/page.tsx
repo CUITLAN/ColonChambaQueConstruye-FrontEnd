@@ -6,12 +6,10 @@ import EmptyDisplay from '@/components/empty-display/EmptyDisplay';
 import { InboxIn } from '@solar-icons/react';
 import NoteRemove from '@/components/common/hugeIcons';
 
-// --- COMPONENTES Y DATA ---
 import { DataTableCustomSearchBar } from '@/components/tables/layouts/DateTableCustomSearchBar';
 import { companiesLinkerColumns, filtersLinkerCompanies } from '@/components/linker/LinkerTabs';
 import PaginationControl from '@/components/navigation/paginationControl';
 
-// --- SERVICIOS Y STORE ---
 import { useApplicantStore } from '@/app/store/authApplicantStore';
 import { apiService } from '@/services/api.service';
 import { toast } from 'sonner';
@@ -31,7 +29,6 @@ export default function PendingCompaniesPage() {
   const [companies, setCompanies] = useState<CompanyData[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Estados de Paginación
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [totalItems, setTotalItems] = useState(0);
@@ -52,7 +49,6 @@ export default function PendingCompaniesPage() {
           limit: pageSize.toString(),
         });
 
-        // Enviamos offset solo si es mayor a 0 (Para evitar error 400 del backend)
         if (offset > 0) {
           queryParams.append('offset', offset.toString());
         }
@@ -67,21 +63,16 @@ export default function PendingCompaniesPage() {
         }
 
         const result = await response.json();
-        console.log("Respuesta Companies:", result); // Debug para ver estructura
+        console.log("Respuesta Companies:", result); 
 
-        // --- CORRECCIÓN DE LA ESTRUCTURA DE DATOS ---
-        // 1. Verificamos si data es un array directo (según tu screenshot)
         let backendList: CompanyData[] = [];
         let backendTotal = 0;
 
         if (Array.isArray(result.data)) {
-            // CASO A: data es el array directo
             backendList = result.data;
-            // Si el backend no manda total, asumimos que si la lista es menor al pageSize, es el final.
-            // Truco: Si devolvió datos, sumamos al offset actual.
+            
             backendTotal = offset + result.data.length + (result.data.length === pageSize ? 1 : 0); 
         } else if (result.data && Array.isArray(result.data.companies)) {
-            // CASO B: Estructura anidada (como en vacancies) por si acaso cambia
             backendList = result.data.companies;
             backendTotal = result.data.total || 0;
         }
@@ -127,13 +118,13 @@ export default function PendingCompaniesPage() {
             columns={companiesLinkerColumns}
             data={companies}
             filters={filtersLinkerCompanies}
-            hidePagination={true} // Ocultamos la paginación interna de la tabla
+            hidePagination={false} 
           />
           
-          <div className="border-t pt-4">
+          {/* <div className="border-t pt-4">
              <PaginationControl
                 currentPage={currentPage}
-                totalPages={totalPages || 1} // Fallback a 1 si es 0
+                totalPages={totalPages || 1} 
                 pageSize={pageSize}
                 totalItems={totalItems}
                 onPageChange={(page) => {
@@ -146,7 +137,7 @@ export default function PendingCompaniesPage() {
                 }}
                 pageSizeOptions={[10, 20, 30, 40, 50]}
              />
-          </div>
+          </div> */}
         </div>
       ) : (
         <div className="flex w-full flex-col items-center justify-center text-center">
