@@ -1,7 +1,11 @@
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { apiService } from '@/services/api.service';
+import { useCompanyStore } from '@/app/store/authCompanyStore';
 
 export const useAccountForm = (companyAccount: any) => {
+  const router = useRouter();
+  const { companyId: storedCompanyId, logout } = useCompanyStore();
   const [isEditingPersonal, setIsEditingPersonal] = useState(false);
   const [isEditingGeneral, setIsEditingGeneral] = useState(false);
 
@@ -99,7 +103,7 @@ export const useAccountForm = (companyAccount: any) => {
   };
 
   const sendRequest = async (payload: any) => {
-    const companyId = localStorage.getItem('companyId');
+    const companyId = storedCompanyId || localStorage.getItem('companyId');
     const accountId = companyAccount?.id;
 
     if (!companyId || !accountId) throw new Error('Falta ID de empresa o cuenta');
@@ -131,7 +135,8 @@ export const useAccountForm = (companyAccount: any) => {
       await sendRequest(payload);
       setIsEditingPersonal(false);
       setErrors(prev => ({ ...prev, personal: {} }));
-      console.log('Datos personales actualizados');
+      logout();
+      router.push('/login/waiting');
     } catch (err: any) {
       console.error(err);
       setErrors(prev => ({
@@ -165,7 +170,8 @@ export const useAccountForm = (companyAccount: any) => {
       setConfirmPassword('');
       setLastPassword('');
       setErrors(prev => ({ ...prev, access: {} }));
-      console.log('Datos de acceso actualizados');
+      logout();
+      router.push('/login/waiting');
     } catch (err: any) {
       console.error(err);
       setErrors(prev => ({

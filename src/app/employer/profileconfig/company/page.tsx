@@ -77,7 +77,6 @@ export default function CompanyPage() {
 
   return (
     <div className="mr-20 space-y-6 p-4 md:p-6 relative">
-      {/* Modales arriba de todo */}
       {showModal && (
         <div className="fixed inset-0 z-50 h-screen flex items-center justify-center bg-black/50">
           <ModalNoticeReview
