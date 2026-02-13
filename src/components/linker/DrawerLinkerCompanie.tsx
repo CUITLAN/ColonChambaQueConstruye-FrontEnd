@@ -1,4 +1,7 @@
-import { JobCardProps } from '@/interfaces/jobCard';
+'use client';
+
+import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import {
   Drawer,
   DrawerClose,
@@ -6,30 +9,117 @@ import {
   DrawerHeader,
   DrawerTitle,
   DrawerTrigger,
-} from "@/components/ui/drawer"
-import { Button } from '../ui/button';
-import { Separator } from '../ui/separator';
+} from "@/components/ui/drawer";
+import { Button } from '@/components/ui/button';
+import { Separator } from '@/components/ui/separator';
+import { CompanyData } from '@/interfaces';
+import { apiService } from '@/services/api.service';
+import { useApplicantStore } from '@/app/store/authApplicantStore';
+import { toast } from 'sonner';
 
-interface DrawerLinkerVacanciesProps {
-  job: JobCardProps;
+
+import AllowVacancyModal from '@/components/ui/modal/AllowVacancy';
+import RejectVacancyModal from '@/components/ui/modal/RejectVacancyModal';
+
+interface DrawerLinkerCompanyProps {
+  companyData: CompanyData;
   sideDrawer: 'right' | 'left';
   open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+  onSuccess?: () => void;
 }
 
-export default function DrawerLinkerVacancies({
-  job,
+export default function DrawerLinkerCompany({
+  companyData,
   sideDrawer,
-}: DrawerLinkerVacanciesProps) {
+  open,
+  onOpenChange,
+  onSuccess
+}: DrawerLinkerCompanyProps) {
+  const { id: linkerId } = useApplicantStore();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
 
-  if (!job) return null;
+  const isControlled = typeof open === 'boolean' && typeof onOpenChange === 'function';
+  const [internalOpen, setInternalOpen] = useState<boolean>(open ?? false);
 
-  const details = job?.companyDetails || {};
+  useEffect(() => {
+    if (!isControlled && typeof open === 'boolean') {
+      setInternalOpen(open);
+    }
+  }, [open, isControlled]);
+
+  const getOpen = () => (isControlled ? open! : internalOpen);
+  const setOpen = (v: boolean) => {
+    if (isControlled) {
+      onOpenChange!(v);
+    } else {
+      setInternalOpen(v);
+    }
+  };
+
+  const [showAllowModal, setShowAllowModal] = useState(false);
+  const [showRejectModal, setShowRejectModal] = useState(false);
+
+  if (!companyData) return null;
+
+  const { Company, CompanyAccount } = companyData;
+
+  const handleReviewCompany = async (validation: boolean, comment?: string) => {
+    if (!linkerId) {
+      toast.error('Error de sesión: No se encontró el ID del Linker.');
+      return;
+    }
+    
+    setIsSubmitting(true);
+    try {
+      const endpoint = `/linkers/${linkerId}/companies/${Company.id}`;
+      
+      const body = {
+        validation,
+        comment: comment || null
+      };
+
+      const response = await apiService.patch(endpoint, body);
+
+      if (!response.ok) throw new Error('Fallo al actualizar estado');
+
+      toast.success(validation ? 'Empresa aprobada correctamente.' : 'Empresa rechazada correctamente.');
+      
+      setShowAllowModal(false);
+      setShowRejectModal(false);
+      setOpen(false);
+
+      if (onSuccess) {
+        onSuccess();
+      }
+    } catch (error) {
+      console.error(error);
+      toast.error('Ocurrió un error al procesar la solicitud.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleAllowConfirm = () => {
+    handleReviewCompany(true);
+  };
+
+  const handleRejectConfirm = (data: { reason: string }) => {
+    handleReviewCompany(false, data.reason);
+  };
 
   return (
     <div className="hover:border-uaq-brand-800 group flex flex-col rounded-lg border border-zinc-300 shadow-sm transition-all duration-300 hover:translate-y-[-2px] hover:shadow-md">
-      <Drawer direction={sideDrawer === "left" ? "left" : "right"}>
+      <Drawer 
+        direction={sideDrawer === "left" ? "left" : "right"} 
+        open={getOpen()} 
+        onOpenChange={setOpen}
+      >
         <DrawerTrigger asChild>
-          <Button variant="primary" className="w-full">
+          <Button variant="primary" color='accent' onClick={() => setOpen(true)}>
             Revisar
           </Button>
         </DrawerTrigger>
@@ -39,19 +129,30 @@ export default function DrawerLinkerVacancies({
             <div className="flex w-full items-center justify-between">
               
               <div className='flex flex-col text-left space-y-1'>
-                <DrawerTitle className="text-xl font-[800] uppercase text-brand-500 leading-tight">
-                  {job.title}
+                <DrawerTitle className="text-2xl font-[800] uppercase text-brand-500 leading-tight">
+                  EMPRESA:{' '}
+                  <span className="font-[800] tracking-wide">{Company.tradeName?.toUpperCase()}</span>
                 </DrawerTitle>
                 <span className="text-sm font-semibold text-gray-500 uppercase tracking-wide">
-                  {job.company}
+                  {Company.legalName}
                 </span>
               </div>
 
-              <div className="flex flex-col gap-2 shrink-0">
-                <Button variant="primary" size="sm" className="w-full">
+              <div className="flex flex-row gap-4 shrink-0 items-center">
+                <Button 
+                  className="px-6"
+                  variant="primary" color="danger"
+                  disabled={isSubmitting}
+                  onClick={() => setShowRejectModal(true)}
+                >
                   Rechazar
                 </Button>
-                <Button variant="primary" className="bg-green-600 hover:bg-green-700 w-full" size="sm">
+                <Button 
+                  className="px-6 "
+                  variant="primary" color="success"
+                  disabled={isSubmitting}
+                  onClick={() => setShowAllowModal(true)}
+                >
                   Aprobar
                 </Button>
               </div>
@@ -61,90 +162,37 @@ export default function DrawerLinkerVacancies({
           <div className="w-10/12 bg-white mx-auto my-5 shadow-sm border border-gray-200 rounded-lg pb-5">
             
             <div className="px-6 py-4 bg-gray-100 rounded-t-lg border-b">
-               <h3 className="font-bold text-gray-700">Detalles de la Vacante</h3>
+               <h3 className="font-bold text-gray-700">Información de la Empresa</h3>
             </div>
 
-            {/* Descripción */}
             <div className="px-6 py-4 flex flex-col gap-2">
               <h3 className="text-sm font-bold text-gray-900">Descripción</h3>
               <p className="text-sm text-gray-600 whitespace-pre-wrap text-justify leading-relaxed break-words">
-                {job.description || 'Sin descripción'}
+                {Company.description || 'Sin descripción'}
               </p>
-            </div>
-            <Separator className='w-11/12 mx-auto' />
-
-            <div className="px-6 py-4 flex justify-between items-center">
-              <h3 className="text-sm font-bold w-1/3">Sueldo mensual</h3>
-              <div className="w-2/3 text-sm text-gray-600 text-right">
-                {job.salaryRange}
-              </div>
-            </div>
-            <Separator className='w-11/12 mx-auto' />
-
-             <div className="px-6 py-4 flex justify-between items-center">
-              <h3 className="text-sm font-bold w-1/3">Modalidad</h3>
-              <div className="w-2/3 text-sm text-gray-600 text-right">
-                {job.modality}
-              </div>
-            </div>
-            <Separator className='w-11/12 mx-auto' />
-            
-            <div className="px-6 py-4 flex justify-between items-center">
-              <h3 className="text-sm font-bold w-1/3">Jornada</h3>
-              <div className="w-2/3 text-sm text-gray-600 text-right">
-                {job.schedule}
-              </div>
-            </div>
-            <Separator className='w-11/12 mx-auto' />
-
-            <div className="px-6 py-4 flex justify-between items-center">
-              <h3 className="text-sm font-bold w-1/3">Prestaciones</h3>
-              <div className="w-2/3 text-sm text-gray-600 text-right">
-                {job.BenefitsSection || '-'}
-              </div>
-            </div>
-            <Separator className='w-11/12 mx-auto' />
-
-            <div className="px-6 py-4 flex justify-between items-center">
-              <h3 className="text-sm font-bold w-1/3">Plazas disponibles</h3>
-              <div className="w-2/3 text-sm text-gray-600 text-right">
-                {job.numberOfPositions}
-              </div>
-            </div>
-
-             <div className="px-6 py-4 flex justify-between items-center">
-              <h3 className="text-sm font-bold w-1/3">Escolaridad</h3>
-              <div className="w-2/3 text-sm text-gray-600 text-right">
-                {job.degree}
-              </div>
-            </div>
-            <Separator className='w-11/12 mx-auto' />
-            
-            {/* AGREGADO: Información Adicional que mapeamos antes */}
-             <div className="px-6 py-4 flex flex-col gap-2">
-              <h3 className="text-sm font-bold text-gray-900">Información Adicional</h3>
-              <p className="text-sm text-gray-600 text-justify leading-relaxed break-words">
-                {job.AdditionalInformation || 'N/A'}
-              </p>
-            </div>
-
-            
-            <div className="mt-6 px-6 py-4 bg-gray-100 border-y">
-               <h3 className="font-bold text-gray-700">Datos de la Empresa</h3>
-            </div>
-
-            <div className="px-6 py-4 flex justify-between items-center">
-              <h3 className="text-sm font-bold w-1/3">Razón Social</h3>
-              <div className="w-2/3 text-sm text-gray-600 text-right">
-                {details.legalName || '-'}
-              </div>
             </div>
             <Separator className='w-11/12 mx-auto' />
 
             <div className="px-6 py-4 flex justify-between items-center">
               <h3 className="text-sm font-bold w-1/3">RFC</h3>
               <div className="w-2/3 text-sm text-gray-600 text-right">
-                {details.rfc || '-'}
+                {Company.rfc}
+              </div>
+            </div>
+            <Separator className='w-11/12 mx-auto' />
+
+             <div className="px-6 py-4 flex justify-between items-center">
+              <h3 className="text-sm font-bold w-1/3">Giro</h3>
+              <div className="w-2/3 text-sm text-gray-600 text-right">
+                {Company.workSector}
+              </div>
+            </div>
+            <Separator className='w-11/12 mx-auto' />
+            
+            <div className="px-6 py-4 flex justify-between items-center">
+              <h3 className="text-sm font-bold w-1/3">Trabajadores</h3>
+              <div className="w-2/3 text-sm text-gray-600 text-right">
+                {Company.totalWorkers}
               </div>
             </div>
             <Separator className='w-11/12 mx-auto' />
@@ -152,44 +200,85 @@ export default function DrawerLinkerVacancies({
             <div className="px-6 py-4 flex justify-between items-start">
               <h3 className="text-sm font-bold w-1/3 mt-1">Dirección</h3>
               <div className="w-2/3 text-sm text-gray-600 text-right break-words">
-                {details.street || '-'} 
-                {details.streetNumber ? ` #${details.streetNumber}` : ''}
-                {details.district ? `, Col. ${details.district}` : ''}
-                {details.municipality ? `, ${details.municipality}` : ''}
+                {Company.street} #{Company.streetNumber}, {Company.district}, {Company.municipality}, {Company.state}, {Company.zipCode}
               </div>
             </div>
-             <Separator className='w-11/12 mx-auto' />
+            <Separator className='w-11/12 mx-auto' />
 
             <div className="px-6 py-4 flex justify-between items-center">
-              <h3 className="text-sm font-bold w-1/3">Giro</h3>
-              <div className="w-2/3 text-sm text-gray-600 text-right lowercase first-letter:uppercase">
-                {details.workSector || job.sector || '-'}
-              </div>
-            </div>
-
-             <Separator className='w-11/12 mx-auto' />
-
-            <div className="px-6 py-4 flex justify-between items-center">
-              <h3 className="text-sm font-bold w-1/3">Correo</h3>
+              <h3 className="text-sm font-bold w-1/3">Correo Empresa</h3>
               <div className="w-2/3 text-sm text-gray-600 text-right">
-                {details.companyEmail || job.email || '-'}
+                {Company.companyEmail}
               </div>
             </div>
+
+            <div className="mt-6 px-6 py-4 bg-gray-100 border-y">
+               <h3 className="font-bold text-gray-700">Datos del Contacto</h3>
+            </div>
+
+            <div className="px-6 py-4 flex justify-between items-center">
+              <h3 className="text-sm font-bold w-1/3">Nombre</h3>
+              <div className="w-2/3 text-sm text-gray-600 text-right">
+                {CompanyAccount.firstName} {CompanyAccount.lastName}
+              </div>
+            </div>
+            <Separator className='w-11/12 mx-auto' />
+
+            <div className="px-6 py-4 flex justify-between items-center">
+              <h3 className="text-sm font-bold w-1/3">Puesto</h3>
+              <div className="w-2/3 text-sm text-gray-600 text-right">
+                {CompanyAccount.jobTitle}
+              </div>
+            </div>
+            <Separator className='w-11/12 mx-auto' />
 
             <div className="px-6 py-4 flex justify-between items-center">
               <h3 className="text-sm font-bold w-1/3">Teléfono</h3>
               <div className="w-2/3 text-sm text-gray-600 text-right">
-                {details.cellPhone || job.cellPhone || '-'}
+                {CompanyAccount.cellPhone}
+              </div>
+            </div>
+            <Separator className='w-11/12 mx-auto' />
+
+            <div className="px-6 py-4 flex justify-between items-center">
+              <h3 className="text-sm font-bold w-1/3">Email Personal</h3>
+              <div className="w-2/3 text-sm text-gray-600 text-right">
+                {CompanyAccount.email}
               </div>
             </div>
 
           </div>
 
-          <DrawerClose className='text-sm font-bold hover:bg-zinc-200 border-0 text-red-500 px-4 py-3 rounded-md mx-auto mb-7 cursor-pointer transition-colors'>
-            Cerrar Ventana
+          <DrawerClose className='text-sm font-bold hover:bg-zinc-200 border-0 text-red-500 px-4 py-3 rounded-md mx-auto mb-7 cursor-pointer transition-colors' onClick={() => setOpen(false)}>
+            Cancelar
           </DrawerClose>
         </DrawerContent>
       </Drawer>
+
+      {/* MODALES DE ACCIÓN CON PORTAL */}
+      {mounted && showAllowModal && createPortal(
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50">
+          <AllowVacancyModal 
+            open={true}
+            onClose={() => setShowAllowModal(false)}
+            onConfirm={handleAllowConfirm}
+          />
+        </div>,
+        document.body
+      )}
+
+      {mounted && showRejectModal && createPortal(
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50">
+          <RejectVacancyModal 
+            open={true}
+            companyName={Company.tradeName}
+            roleTitle={Company.legalName}
+            onClose={() => setShowRejectModal(false)}
+            onConfirm={handleRejectConfirm}
+          />
+        </div>,
+        document.body
+      )}
     </div>
   );
 }

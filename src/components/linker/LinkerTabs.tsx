@@ -86,33 +86,38 @@ export const filtersLinkerVacancies: filterType[] = [
   }
 ]
 
-export const companiesLinkerColumns: ColumnDef<CompanyData>[] = [
+export const getCompaniesLinkerColumns = (onUpdate: () => void): ColumnDef<CompanyData>[] => [
   {
     id: 'name',
-    accessorFn: (row) => row.Company.tradeName ?? '', 
+    accessorFn: (row) => row.Company.tradeName ?? '',
     header: ({ column }) => <SortButton column={column} name="Nombre de la empresa" />,
     cell: ({ row }) => (
       <div className="flex items-center gap-3">
         <Avatar className="w-10 h-10">
-            <AvatarFallback className="bg-uaq-terniary text-white font-semibold">
-              {row.original.Company.tradeName
-                .split(' ')
-                .map((word) => word.charAt(0))}
-            </AvatarFallback>
-          </Avatar>
-        {row.original.Company.tradeName}
+          <AvatarFallback className="bg-uaq-terniary text-white font-semibold uppercase">
+            {row.original.Company.tradeName
+              ? row.original.Company.tradeName.substring(0, 2)
+              : 'EP'}
+          </AvatarFallback>
+        </Avatar>
+        <span className="font-medium text-zinc-700">{row.original.Company.tradeName}</span>
       </div>
     ),
+    filterFn: accentInsensitiveTextFilter,
   },
   {
     accessorKey: 'workSector',
     accessorFn: (row) => row.Company.workSector ?? '',
     header: ({ column }) => <SortButton column={column} name="Giro de la empresa" />,
+    cell: ({ getValue }) => <span className="text-zinc-600">{getValue() as string}</span>,
+    filterFn: accentInsensitiveTextFilter,
   },
   {
     accessorKey: 'registeredAt',
     accessorFn: (row) => row.Company.registeredAt ?? '',
-    cell: ({ getValue }) => dateToLocaleDateString(getValue() as string),
+    cell: ({ getValue }) => (
+      <span className="text-zinc-500">{dateToLocaleDateString(getValue() as string)}</span>
+    ),
     header: ({ column }) => <SortButton column={column} name="Fecha de registro" />,
   },
   {
@@ -121,10 +126,9 @@ export const companiesLinkerColumns: ColumnDef<CompanyData>[] = [
     cell: ({ row }) => {
       return (
         <DrawerLinkerCompany 
-          company={row.original as CompanyData} 
-          sideDrawer='right' 
-          open={false} 
-          logoUrl={''} 
+          companyData={row.original} 
+          sideDrawer="right" 
+          onSuccess={onUpdate} 
         />
       );
     },
@@ -142,4 +146,4 @@ export const filtersLinkerCompanies: filterType[] = [
     name: 'Fecha de registro',
     isDate: true,
   }
-]
+];
