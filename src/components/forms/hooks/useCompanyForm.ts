@@ -1,7 +1,11 @@
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { apiService } from '@/services/api.service';
+import { useCompanyStore } from '@/app/store/authCompanyStore';
 
 export const useCompanyForm = (company: any) => {
+  const router = useRouter();
+  const { companyId: storedCompanyId, logout } = useCompanyStore();
   const [isEditingInfo, setIsEditingInfo] = useState(false);
   const [isEditingFiscales, setIsEditingFiscales] = useState(false);
   
@@ -59,8 +63,24 @@ export const useCompanyForm = (company: any) => {
     return newErrors;
   };
 
+  const getResponseError = async (res: Response) => {
+    try {
+      const contentType = res.headers.get('content-type') || '';
+      if (contentType.includes('application/json')) {
+        const data = await res.json();
+        if (data?.message) return String(data.message);
+        return JSON.stringify(data);
+      }
+
+      return await res.text();
+    } catch (error) {
+      console.error('Error leyendo respuesta del servidor:', error);
+      return '';
+    }
+  };
+
   const saveData = async (type: 'info' | 'fiscal') => {
-    const companyId = localStorage.getItem('companyId');
+    const companyId = storedCompanyId || localStorage.getItem('companyId');
     if (!companyId) throw new Error('ID de empresa no encontrado');
 
     const keysToValidate = type === 'info' 
@@ -98,11 +118,28 @@ export const useCompanyForm = (company: any) => {
       
       const res = await apiService.put(`/companies/${companyId}`, payload);
 
-      if (!res.ok) throw new Error('Error en la actualización');
+      if (!res.ok) {
+        const errDetail = await getResponseError(res);
+        throw new Error(`Error en la actualización: ${errDetail || res.status}`);
+      }
+
+      const statusRes = await apiService.put(`/companies/${companyId}/status`, {
+        status: 'REVISION',
+      });
+
+      if (!statusRes.ok) {
+        if (statusRes.status !== 409) {
+          const errDetail = await getResponseError(statusRes);
+          throw new Error(`Error al actualizar el estatus: ${errDetail || statusRes.status}`);
+        }
+        // 409: ya esta en REVISION, no bloquea el flujo
+      }
 
       if (type === 'info') setIsEditingInfo(false);
       if (type === 'fiscal') setIsEditingFiscales(false);
       
+      logout();
+      router.push('/login/waiting');
       return true;
 
     } catch (error) {

@@ -8,7 +8,9 @@ import RowActions from './VacanciesActions';
 import { Vacancy } from '@/interfaces/vacancy';
 import { VacancyRow } from '@/app/employer/home/vacancies/page';
 
-export const vacanciesColumns: ColumnDef<VacancyRow>[] = [
+export const createVacanciesColumns = (
+  onCloseVacancy?: (vacancyId: string) => void,
+): ColumnDef<VacancyRow>[] => [
   {
     accessorKey: 'name',
     header: ({ column }) => <SortButton column={column} name="Título" />,
@@ -51,7 +53,7 @@ export const vacanciesColumns: ColumnDef<VacancyRow>[] = [
     header: ({ column }) => <SortButton column={column} name="Fecha de Publicación" />,
     filterFn: dateSameDay,
   },
-    {
+  {
     accessorKey: 'status',
     header: ({ column }) => <SortButton column={column} name="Estado" />,
     cell: ({ getValue }) => {
@@ -74,8 +76,8 @@ export const vacanciesColumns: ColumnDef<VacancyRow>[] = [
     },
   },
   {
-    header:'Editar',
+    header: 'Editar',
     id: 'actions',
-    cell: ({ row }) => <RowActions row={row} />,
+    cell: ({ row }) => <RowActions row={row} onCloseVacancy={onCloseVacancy} />,
   },
 ];
