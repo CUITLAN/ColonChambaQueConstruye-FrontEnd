@@ -60,7 +60,7 @@ export default function RowActions({
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
-        <DrawerVacante vacancyId={row.original.id} />
+         {open && <DrawerVacante vacancyId={row.original.id} />}
       </Drawer>
     </>
   );

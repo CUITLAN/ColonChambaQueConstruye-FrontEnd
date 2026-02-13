@@ -5,11 +5,11 @@ export interface UserCandidate {
   birthDate: string;
   email: string;
   address: string;
-  phone: string;
-  educationLevel: string;
-  career?: string; // Opcional
-  experience: string;
+  cellPhone: string;
+  academicLevel: string;
+  degree?: string; // Opcional
+  jobExperience: string;
   desiredPosition: string;
-  registrationDate: string;
+  registeredAt: string;
   status: 'REVISION' | 'RECHAZADO' | 'ACTIVO' | 'INACTIVO';
 }
