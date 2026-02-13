@@ -116,7 +116,7 @@ export default function DrawerLinkerUser({
             <div className="px-10 py-6 flex justify-between">
               <h3 className="text-base font-medium w-1/3">Teléfono celular</h3>
               <div className="w-2/3">
-                <span>{user.phone ?? '-'}</span>
+                <span>{user.cellPhone ?? '-'}</span>
               </div>
             </div>
             <Separator className='w-11/12 justify-center mx-auto shadow-md rounded-lg' />
@@ -125,7 +125,7 @@ export default function DrawerLinkerUser({
             <div className="px-10 py-6 flex justify-between">
               <h3 className="text-base font-medium w-1/3">Grado de estudios</h3>
               <div className="w-2/3">
-                <span>{user.educationLevel ?? '-'}</span>
+                <span>{user.academicLevel ?? '-'}</span>
               </div>
             </div>
             <Separator className='w-11/12 justify-center mx-auto shadow-md rounded-lg' />
@@ -134,7 +134,7 @@ export default function DrawerLinkerUser({
             <div className="px-10 py-6 flex justify-between">
               <h3 className="text-base font-medium w-1/3">Carrera (opcional)</h3>
               <div className="w-2/3">
-                <span>{user.career ?? '-'}</span>
+                <span>{user.degree ?? '-'}</span>
               </div>
             </div>
             <Separator className='w-11/12 justify-center mx-auto shadow-md rounded-lg' />
@@ -143,7 +143,7 @@ export default function DrawerLinkerUser({
             <div className="px-10 py-6 flex justify-between">
               <h3 className="text-base font-medium w-1/3">Experiencia</h3>
               <div className="w-2/3">
-                <span>{user.experience ?? '-'}</span>
+                <span>{user.jobExperience ?? '-'}</span>
               </div>
             </div>
             <Separator className='w-11/12 justify-center mx-auto shadow-md rounded-lg' />
@@ -161,7 +161,7 @@ export default function DrawerLinkerUser({
             <div className="px-10 py-6 flex justify-between">
               <h3 className="text-base font-medium w-1/3">Fecha de registro</h3>
               <div className="w-2/3">
-                <span>{dateToLocaleDateString(user.registrationDate)}</span>
+                <span>{dateToLocaleDateString(user.registeredAt)}</span>
               </div>
             </div>
             <Separator className='w-11/12 justify-center mx-auto shadow-md rounded-lg' />

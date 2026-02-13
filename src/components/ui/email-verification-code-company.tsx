@@ -9,12 +9,16 @@ import { useCompanyStore } from '@/app/store/authCompanyStore';
 
 interface OtpInputProps {
   length?: number;
+  onSuccess?:()=>void
 }
 
 export default function EmailVerificationCodeCompany({
   length = 6,
+  onSuccess
 }: OtpInputProps) {
-  const { companyId, token } = useCompanyStore();
+  const companyId = useCompanyStore((store) => store.companyId);
+  const token = useCompanyStore((store) => store.token);
+
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -70,7 +74,8 @@ export default function EmailVerificationCodeCompany({
       }
 
       console.log('Código validado correctamente:', result);
-      // aquí ya podrías redirigir al siguiente paso
+      onSuccess?.();
+      
     } catch (err) {
       console.error(err);
       setError('Error al validar el código.');
