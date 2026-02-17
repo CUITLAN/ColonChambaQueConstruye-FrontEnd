@@ -1,16 +1,13 @@
 'use client';
 
-import { JSX, useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 
 import TitleSection from '@/components/common/TitleSection';
-import EmptyDisplay from '@/components/empty-display/EmptyDisplay';
-import { vacanciesColumns } from '@/components/tables/schemas/Vacancies';
+import { createVacanciesColumns } from '@/components/tables/schemas/Vacancies';
 import { Button } from '@/components/ui/button';
 import { CaseRound } from '@solar-icons/react';
-import AlertCard from '@/components/common/Alert';
 import { DataTableCustomSearchBar } from '@/components/tables/layouts/DateTableCustomSearchBar';
 import { filtersVacancies } from '@/data/filtersVacancies';
-import NoteRemove from '@/components/common/hugeIcons';
 import { useCompanyStore } from '@/app/store/authCompanyStore';
 import { apiService } from '@/services/api.service';
 
@@ -24,7 +21,7 @@ const sectionConfig = {
 
 export interface VacancyRow {
   id: string;
-  name: string; 
+  name: string;
   description: string;
   location: string;
   modality: string;
@@ -37,12 +34,16 @@ export interface VacancyRow {
   dateFilter: string;
 }
 
-
 const mapCompanyStatus = (raw: any): 'APROBADA' | 'REVISION' | 'RECHAZADA' => {
   if (!raw) return 'APROBADA';
   const s = String(raw).toLowerCase();
   if (s.includes('reject') || s.includes('rechaz')) return 'RECHAZADA';
-  if (s.includes('review') || s.includes('pending') || s.includes('revision') || s.includes('pendiente')) {
+  if (
+    s.includes('review') ||
+    s.includes('pending') ||
+    s.includes('revision') ||
+    s.includes('pendiente')
+  ) {
     return 'REVISION';
   }
   return 'APROBADA';
@@ -54,28 +55,20 @@ const VacanciesContent = ({
   vacancies,
   onSearchChange,
   onFilterChange,
+  onCloseVacancy,
 }: {
   hasData: boolean;
   accountStatus: 'APROBADA' | 'REVISION' | 'RECHAZADA';
   vacancies: VacancyRow[];
   onSearchChange?: (value: string) => void;
   onFilterChange?: (columnId: string, value: any) => void;
+  onCloseVacancy?: (vacancyId: string) => void;
 }) => {
-  const commonEmptyState = (
-    <div className="flex w-full flex-col mt-20 items-center justify-center text-center">
-      <EmptyDisplay
-        icon={<NoteRemove color="#D4D4D8" width={158} height={166} />}
-        firstLine="Todavía no has publicado alguna vacante."
-        secondline="Utiliza las opciones de la barra de navegación lateral para crear una o da clic en el siguiente botón para generar una nueva vacante."
-      />
-    </div>
-  );
-
-  const statusComponents: Record<string, JSX.Element> = {
+  const statusComponents: Record<string, React.ReactNode> = {
     APROBADA: hasData ? (
       <div>
         <DataTableCustomSearchBar
-          columns={vacanciesColumns}
+          columns={createVacanciesColumns(onCloseVacancy)}
           data={vacancies}
           filters={filtersVacancies}
           onSearchChange={onSearchChange}
@@ -84,10 +77,9 @@ const VacanciesContent = ({
       </div>
     ) : (
       <div className="flex w-full flex-col items-center justify-center text-center">
-        //Recordatorio de limpiar esto, no se quien lo puso pero X
+        {/* Recordatorio de limpiar esto, no se quien lo puso pero X */}
       </div>
-    )
-    
+    ),
   };
 
   return statusComponents[accountStatus] || null;
@@ -103,6 +95,30 @@ export default function VacanciesPage() {
   const [search, setSearch] = useState('');
   const [backendFilters, setBackendFilters] = useState<Record<string, any>>({});
 
+  const [closeModalOpen, setCloseModalOpen] = useState(false);
+  const [selectedVacancyId, setSelectedVacancyId] = useState<string | null>(null);
+
+  const confirmClose = async () => {
+    if (!selectedVacancyId) return;
+
+    const ok = await closeVacancy(selectedVacancyId);
+    console.log('CONFIRM CLICK', ok);
+    if (ok) {
+      setCloseModalOpen(false);
+      setSelectedVacancyId(null);
+    }
+  };
+
+  const cancelClose = () => {
+    setCloseModalOpen(false);
+    setSelectedVacancyId(null);
+  };
+
+  const askCloseVacancy = (vacancyId: string) => {
+    setSelectedVacancyId(vacancyId);
+    setCloseModalOpen(true);
+  };
+
   // handlers que se pasan al DataTableCustomSearchBar
   const handleSearchChange = (value: string) => {
     setSearch(value);
@@ -115,155 +131,185 @@ export default function VacanciesPage() {
     }));
   };
 
-  useEffect(() => {
-    const fetchVacancies = async () => {
-      if (!token || !companyId) {
-        console.warn('No hay token o companyId, no se hace fetch');
-        setIsLoading(false);
-        return;
+  const fetchVacancies = useCallback(async () => {
+    if (!token || !companyId) {
+      setIsLoading(false);
+      return;
+    }
+
+    setIsLoading(true);
+
+    try {
+      const params = new URLSearchParams();
+
+      // ✅ Filtrar solo vacantes ABIERTAS
+      params.set('status', 'ABIERTA');
+
+      if (search.trim()) {
+        params.set('search', search.trim());
       }
 
-      try {
-        const params = new URLSearchParams();
+      Object.entries(backendFilters).forEach(([key, value]) => {
+        if (value == null || value === '' || (Array.isArray(value) && value.length === 0)) return;
 
-        if (search) {
-          params.append('search', search);
-        }
+        if (key === 'createdAt' || key === 'dateFilter') {
+          const date = value instanceof Date ? value : new Date(value);
+          if (isNaN(date.getTime())) return;
 
-        Object.entries(backendFilters).forEach(([key, value]) => {
-          if (value == null || value === '' || (Array.isArray(value) && value.length === 0)) return;
+          const formatted = date.toISOString().split('T')[0];
+          const formattedDateOnly = new Date(formatted);
+          formattedDateOnly.setHours(0, 0, 0, 0);
 
-          if (key === 'createdAt' || key === 'dateFilter') {
-            let date: Date | null = null;
+          const today = new Date();
+          today.setHours(0, 0, 0, 0);
 
-            if (value instanceof Date) {
-              date = value;
-            } else if (typeof value === 'string') {
-              date = new Date(value);
-            }
+          if (formattedDateOnly > today) return;
 
-            if (!date || isNaN(date.getTime())) {
-              return;
-            }
-
-            const formatted = date.toISOString().split('T')[0]; 
-
-            const formattedDateOnly = new Date(formatted);
-            formattedDateOnly.setHours(0,0,0,0);
-
-    
-            const today = new Date();
-            today.setHours(0,0,0,0);
-            const dateOnly = new Date(date);
-            dateOnly.setHours(0,0,0,0);
-
-            if (dateOnly > today) {
-              return;
-            }
-
-            params.append('dateFilter', formatted );
-            return;
-          }
-
-          if (Array.isArray(value)) {
-            value
-              .map((item) => (typeof item === 'string' ? item : String(item ?? '')))
-              .map((item) => item.trim())
-              .filter((item) => item.length > 0)
-              .forEach((item) => params.append(key, item));
-            return;
-          }
-
-          if (typeof value === 'string') {
-            value
-              .split(/[|,]/)
-              .map((item) => item.trim())
-              .filter((item) => item.length > 0)
-              .forEach((item) => params.append(key, item));
-            return;
-          }
-
-          params.append(key, String(value));
-        });
-
-
-
-        const qs = params.toString();
-        const url = qs
-          ? `/companies/${companyId}/vacancies?${qs}`
-          : `/companies/${companyId}/vacancies`;
-
-        const response = await apiService.get(url);
-
-        if (!response?.ok) {
-          setIsLoading(false);
+          params.set('dateFilter', formatted);
           return;
         }
 
-        const result = await response.json();
-        console.log('Respuesta API completa:', result);
+        if (Array.isArray(value)) {
+          value
+            .map((v) => String(v ?? '').trim())
+            .filter(Boolean)
+            .forEach((v) => params.append(key, v));
+          return;
+        }
 
-        const rawVacancies =
-          Array.isArray(result?.data?.vacancies)
-            ? result.data.vacancies
-            : Array.isArray(result?.data)
-            ? result.data
-            : Array.isArray(result)
+        if (typeof value === 'string') {
+          value
+            .split(/[|,]/)
+            .map((v) => v.trim())
+            .filter(Boolean)
+            .forEach((v) => params.append(key, v));
+          return;
+        }
+
+        params.append(key, String(value));
+      });
+
+      const url = `/companies/${companyId}/vacancies?${params.toString()}`;
+      const response = await apiService.get(url);
+
+      
+
+      if (!response?.ok) {
+        setVacancies([]);
+        return;
+      }
+
+      const result = await response.json();
+      console.log('Vacancies fetched:', result);
+
+      const rawVacancies = Array.isArray(result?.data?.vacancies)
+        ? result.data.vacancies
+        : Array.isArray(result?.data)
+          ? result.data
+          : Array.isArray(result)
             ? result
             : [];
 
-        if (Array.isArray(rawVacancies) && rawVacancies.length > 0) {
-          const mapped: VacancyRow[] = rawVacancies.map((item: any) => ({
-            id: item.id,
-            name: item.name ?? item.title ?? '',
-            company: item.company?.name ?? item.company ?? 'Empresa',
-            location: item.location ?? '',
-            description: item.description ?? '',
-            workShift: item.workShift ?? item.schedule ?? '',
-            modality: item.modality ?? '',
-            salaryRange:
-              item.salary && typeof item.salary === 'object'
-                ? `$${Number(item.salary.min).toLocaleString()} - $${Number(item.salary.max).toLocaleString()} MXN`
-                : item.salaryRange ?? '',
-            logoUrl: item.company?.logoUrl ?? item.logoUrl ?? '/default-company-logo.svg',
-            status: item.status,
-            numberOpenings: item.numberOpenings ?? item.numberOpenings,
-            dateFilter: item.createdAt,
-          }));
+      const mapped: VacancyRow[] = rawVacancies.map((item: any) => ({
+        id: item.id,
+        name: item.name ?? item.title ?? '',
+        company: item.company?.name ?? item.company ?? 'Empresa',
+        location: item.location ?? '',
+        description: item.description ?? '',
+        workShift: item.workShift ?? item.schedule ?? '',
+        modality: item.modality ?? '',
+        salaryRange:
+          item.salary && typeof item.salary === 'object'
+            ? `$${Number(item.salary.min).toLocaleString()} - $${Number(item.salary.max).toLocaleString()} MXN`
+            : (item.salaryRange ?? ''),
+        logoUrl: item.company?.logoUrl ?? item.logoUrl ?? '/default-company-logo.svg',
+        status: item.status,
+        numberOpenings: item.numberOpenings ?? 0,
+        dateFilter: item.createdAt,
+      }));
 
-          setVacancies(mapped);
-        } else {
-          setVacancies([]);
-        }
-      } catch (error) {
-        setVacancies([]);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchVacancies();
+      setVacancies(mapped);
+    } catch {
+      setVacancies([]);
+    } finally {
+      setIsLoading(false);
+    }
   }, [token, companyId, search, backendFilters]);
+
+  useEffect(() => {
+    fetchVacancies();
+  }, [fetchVacancies]);
+
+  const closeVacancy = useCallback(
+    async (vacancyId: string): Promise<boolean> => {
+      if (!companyId || !vacancyId) return false;
+
+      try {
+        const response = await apiService.put(`/companies/${companyId}/vacancies/${vacancyId}`, {
+          companyStatus: 'CERRADA',
+        });
+
+        const result = await response.json();
+        console.log('✅ Vacante cerrada exitosamente:', result);
+
+        if (!response.ok) {
+          console.log('Error cerrando vacante:', result);
+          return false;
+        }
+
+        // ✅ Refrescar lista para remover la vacante cerrada
+        await fetchVacancies();
+
+        return true;
+      } catch (e) {
+        console.log('Error cerrando vacante:', e);
+        return false;
+      }
+    },
+    [companyId, fetchVacancies],
+  );
 
   const hasData = vacancies.length > 0;
   const mappedStatus = mapCompanyStatus(status);
 
   return (
-    <div className="mx-32 my-16 flex flex-col gap-5">
-      <div>
-        <TitleSection sections={sectionConfig} currentSection={'profile'} />
-      </div>
+    <div className="">
+      <div className="mx-32 my-16 flex flex-col gap-5">
+        <div>
+          <TitleSection sections={sectionConfig} currentSection={'profile'} />
+        </div>
 
-      {isLoading ? (
-        <div className="py-8 text-center">Cargando vacantes...</div>
-      ) : (
-        <VacanciesContent
-          hasData={hasData}
-          accountStatus={mappedStatus}
-          vacancies={vacancies}
-          onSearchChange={handleSearchChange}
-          onFilterChange={handleFilterChange}
-        />
+        {isLoading ? (
+          <div className="py-8 text-center">Cargando vacantes...</div>
+        ) : (
+          <VacanciesContent
+            hasData={hasData}
+            accountStatus={mappedStatus}
+            vacancies={vacancies}
+            onSearchChange={handleSearchChange}
+            onFilterChange={handleFilterChange}
+            onCloseVacancy={askCloseVacancy}
+          />
+        )}
+      </div>
+      {closeModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <div className="w-full max-w-md rounded-lg bg-white p-6 shadow-xl">
+            <h3 className="text-lg font-semibold">Cerrar vacante</h3>
+            <p className="mt-2 text-sm text-gray-600">
+              Esta acción dará de baja la vacante de forma definitiva. ¿Deseas continuar?
+            </p>
+
+            <div className="mt-6 flex justify-end gap-3">
+              <Button type="button" variant="ghost" onClick={cancelClose}>
+                Cancelar
+              </Button>
+              <Button type="button" onClick={confirmClose}>
+                Confirmar cierre
+              </Button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

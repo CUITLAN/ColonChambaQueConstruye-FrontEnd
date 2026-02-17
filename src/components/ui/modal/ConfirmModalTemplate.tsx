@@ -54,12 +54,12 @@ export default function BaseModalTemplate({
 
   return (
     <div
-      className={`relative mx-auto w-full max-w-2xl shadow-md ${className}`}
+      className={`relative mx-auto w-full max-w-lg ${className}`}
       onClick={(e) => e.stopPropagation()}
     >
       <Tabs value="open">
         <TabsContent value="open">
-          <Card className="flex flex-col bg-zinc-50 p-8 max-h-[217px] max-w-[540px]">
+          <Card className="flex flex-col bg-zinc-50 p-8">
             <CardTitle>{texts.title}</CardTitle>
 
             <CardDescription className="my-4 text-card-foreground">
