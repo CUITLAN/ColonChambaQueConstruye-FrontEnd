@@ -3,14 +3,13 @@ import { create } from 'zustand';
 
 interface CompanyAuthState {
   token: string | null;
-  companyId: string | null;   // id de la cuenta de empresa (companyAccountId)
+  companyId: string | null;  
   email: string | null;
   status: string | null;
 
-  // ya la debes tener:
   login: (data: {
-    companyId?: string;        // opcional por compatibilidad
-    id?: string;               // si antes usabas "id"
+    companyId?: string;        
+    id?: string;             
     email: string;
     status: string;
     token: string;
@@ -19,7 +18,6 @@ interface CompanyAuthState {
   logout: () => void;
   initialize: () => void;
 
-  // 👉 esta es la que te falta
   saveCompanyData: (data: {
     companyId: string;
     email: string;
@@ -82,7 +80,6 @@ export const useCompanyStore = create<CompanyAuthState>((set) => ({
     }
   },
 
-  // 👉 esta es la acción que usas en SignUpEmployer
   saveCompanyData: ({ companyId, email, status, token }) => {
     set({
       companyId,

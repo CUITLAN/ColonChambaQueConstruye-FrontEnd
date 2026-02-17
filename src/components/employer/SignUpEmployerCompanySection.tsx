@@ -66,7 +66,7 @@ export default function SignUpEmployerCompanySection({
         municipality: data.companyAddressMunicipality,
         country: data.companyAddressCountry,
         investmentCountry: data.companyInvestmentCountry,
-        totalWorkers: Number(data.companyEmlpoyeesNumber), // 👈 debe ser number
+        totalWorkers: Number(data.companyEmlpoyeesNumber), 
         rfc: data.companyRFC,
         description: data.companyDescription,
         companyEmail: data.companyEmail,
@@ -99,9 +99,7 @@ export default function SignUpEmployerCompanySection({
 
   return (
     <FormProvider {...methods}>
-      {/* OJO: ya no card, solo estructura interna */}
       <form onSubmit={handleSubmit(onSubmit, onError)} className="space-y-6">
-        {/* Si quieres puedes dejar solo este subtítulo */}
         <p className="text-center text-sm leading-5 text-gray-600">
           Por favor, completa la información general, fiscal y de ubicación de tu
           empresa para continuar con el registro.

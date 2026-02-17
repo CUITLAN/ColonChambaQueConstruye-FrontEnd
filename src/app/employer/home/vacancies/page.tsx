@@ -192,7 +192,8 @@ export default function VacanciesPage() {
       const url = `/companies/${companyId}/vacancies?${params.toString()}`;
       const response = await apiService.get(url);
 
-      console.log(url,response)
+      
+
       if (!response?.ok) {
         setVacancies([]);
         return;
