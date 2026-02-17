@@ -63,7 +63,6 @@ interface DataTableCSBProps<TData, TValue> extends DataTableProps<TData, TValue>
   filters: filterType[];
   onSearchChange?: (value: string) => void;
   onFilterChange?: (columnId: string, value: any) => void;
-  // Prop opcional para ocultar la paginación interna
   hidePagination?: boolean; 
 }
 
@@ -73,7 +72,7 @@ export function DataTableCustomSearchBar<TData, TValue>({
   filters,
   onSearchChange,
   onFilterChange,
-  hidePagination = false, // Por defecto es false para no romper otras tablas
+  hidePagination = false,
 }: DataTableCSBProps<TData, TValue>) {
   
   const [sorting, setSorting] = useState<SortingState>([]);
