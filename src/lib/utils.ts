@@ -55,3 +55,33 @@ export function toYMD(date: Date): string {
     date.getDate(),
   ).padStart(2, '0')}`;
 }
+
+/**
+ * Formats working days array to a readable string with proper capitalization and accents.
+ * Joins days with ", " and uses " y " before the last day.
+ *
+ * @param days - Array of working days in uppercase format (e.g., ['LUNES', 'MARTES'])
+ * @returns Formatted string (e.g., "Lunes, Martes y Miércoles")
+ */
+export function formatWorkingDays(days?: string[]): string {
+  if (!days || days.length === 0) return '';
+
+  const dayMap: { [key: string]: string } = {
+    'LUNES': 'Lunes',
+    'MARTES': 'Martes',
+    'MIERCOLES': 'Miércoles',
+    'JUEVES': 'Jueves',
+    'VIERNES': 'Viernes',
+    'SABADO': 'Sábado',
+    'DOMINGO': 'Domingo'
+  };
+
+  const formattedDays = days.map(day => dayMap[day.toUpperCase()] || day);
+
+  if (formattedDays.length === 1) return formattedDays[0];
+
+  const allButLast = formattedDays.slice(0, -1).join(', ');
+  const last = formattedDays[formattedDays.length - 1];
+
+  return `${allButLast} y ${last}`;
+}
