@@ -8,7 +8,7 @@ interface AuthState {
   status: string | null;
 
   login: (data: { id: string; email: string; status: string; token: string }) => void;
-  logout: () => void;
+  logoutAplicant: () => void;
   initialize: () => void; 
 } 
 const LOCAL_STORAGE_TOKEN_KEY = 'authToken';
@@ -33,7 +33,7 @@ export const useApplicantStore = create<AuthState>((set) => ({
     }
     console.log(data.id, LOCAL_STORAGE_ID_KEY);
   },
-  logout: () => {
+  logoutAplicant: () => {
     set({
       token: null,
       id: null,
