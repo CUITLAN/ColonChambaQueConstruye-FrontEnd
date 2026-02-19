@@ -3,13 +3,13 @@ import { create } from 'zustand';
 
 interface CompanyAuthState {
   token: string | null;
-  companyId: string | null;
+  companyId: string | null;  
   email: string | null;
   status: string | null;
 
   login: (data: {
-    companyId?: string;
-    id?: string;
+    companyId?: string;        
+    id?: string;             
     email: string;
     status: string;
     token: string;

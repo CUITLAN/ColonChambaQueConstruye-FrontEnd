@@ -102,10 +102,10 @@ export default function PendingCompaniesPage() {
       {hasData ? (
         <div className="space-y-4">
           <DataTableCustomSearchBar
-            columns={companiesLinkerColumns}
+            columns={columns}
             data={companies}
             filters={filtersLinkerCompanies}
-            hidePagination={true} // Ocultamos la paginación interna de la tabla
+            hidePagination={false} 
           />
           
           <div className="border-t pt-4">

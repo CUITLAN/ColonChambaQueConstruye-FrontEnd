@@ -11,12 +11,11 @@ export type Company = {
 };
 
 
-// 1. La interfaz para el objeto de la empresa (Company)
 export interface CompanyC {
   id: string;
   tradeName: string;
   legalName: string;
-  zipCode: string; // Es mejor string para códigos postales (por si inician con 0)
+  zipCode: string; 
   street: string;
   state: string;
   district: string;
@@ -28,14 +27,13 @@ export interface CompanyC {
   rfc: string;
   description: string;
   companyEmail: string;
-  workSector: string; // Podría ser un Enum si tienes valores fijos
-  registeredAt: string; // ISO Date string
-  status: 'REVISION' | 'ACTIVA' | 'INACTIVA' | 'RECHAZADA'; // Podría ser un Enum ('ACTIVA', 'INACTIVA', etc.)
+  workSector: string; 
+  registeredAt: string; 
+  status: 'REVISION' | 'ACTIVA' | 'INACTIVA' | 'RECHAZADA'; 
   comment: string | null;
-  LinkerId: string | null; // Asumo string por el patrón de IDs, pero permite null
+  LinkerId: string | null; 
 }
 
-// 2. La interfaz para la cuenta de usuario asociada (CompanyAccount)
 export interface CompanyAccount {
   id: string;
   firstName: string;
@@ -46,7 +44,6 @@ export interface CompanyAccount {
   jobTitle: string;
 }
 
-// 3. La estructura del objeto "data"
 export interface CompanyData {
   Company: CompanyC;
   CompanyAccount: CompanyAccount;

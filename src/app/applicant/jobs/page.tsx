@@ -58,7 +58,6 @@ export default function JobsPage() {
     name: ''
   });
 
-  // 2. ESTADO DE PAGINACIÓN
   const [pagination, setPagination] = useState({
     page: 1,      
     limit: 10,    
