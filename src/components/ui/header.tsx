@@ -23,6 +23,7 @@ import CompanyAvatar from '../common/AvatarTrasnform';
 import { useApplicantStore } from '@/app/store/authApplicantStore';
 import { useUserStore } from '@/app/store/useUserInfoStore';
 import ApplicantAvatar from '../applicant/AplicantAvatar';
+import { useCompanyStore } from '@/app/store/authCompanyStore';
 
 interface HeaderProps {
 
@@ -43,14 +44,20 @@ export default function Header({
   showProfileButton = true,
   logoutRedirectPath = '/',
 }: HeaderProps) {
-  const [showLogout, setShowLogout] = useState(false);
-  const router = useRouter();
 
-  // ✅ detecta applicant
+  const router = useRouter();
+  const [showLogout, setShowLogout] = useState(false);
+  
+
+
   const { token: applicantToken } = useApplicantStore();
   const isApplicant = !!applicantToken;
 
-  // ✅ user data (ya la estás cargando desde layout/store)
+  //storages
+  const {logoutCompany}=useCompanyStore()
+  const {logoutAplicant}=useApplicantStore()
+
+  // const {logout}=useApplicantStore()
   const { user } = useUserStore();
 
   const openLogoutModal = () => setShowLogout(true);
@@ -58,10 +65,12 @@ export default function Header({
 
   const handleLogoutConfirm = () => {
     closeLogoutModal();
+    logoutCompany()
+    logoutAplicant()
     router.push(logoutRedirectPath);
   };
 
-
+  
 
   const companyName = (companyTitle && companyTitle.trim().length > 0) ? companyTitle : 'Empresa';
 

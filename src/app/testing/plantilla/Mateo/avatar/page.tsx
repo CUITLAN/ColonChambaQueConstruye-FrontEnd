@@ -38,7 +38,7 @@ export default function HeaderAvatarTestPage() {
   const router = useRouter();
   
   // ✅ Obtener token y userId del store de Zustand (patrón ApplicantSignUp)
-  const { token, id: userId, logout, user: storeUser } = useApplicantStore();
+  const { token, id: userId, logoutAplicant: logout, user: storeUser } = useApplicantStore();
 
   // ✅ Opción 1: Usar usuario del store directamente (si ya está cargado)
   // ✅ Opción 2: Hacer fetch a la API para datos más frescos

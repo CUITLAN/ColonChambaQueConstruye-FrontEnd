@@ -17,7 +17,7 @@ export default function HeaderLinker({
 }: HeaderLinkerProps) {
   const [showLogout, setShowLogout] = useState(false);
   const router = useRouter();
-  const logout = useApplicantStore((state) => state.logout);
+  const logout = useApplicantStore((state) => state.logoutAplicant);
 
   const openLogoutModal = () => setShowLogout(true);
   const closeLogoutModal = () => setShowLogout(false);
