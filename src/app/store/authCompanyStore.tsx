@@ -3,23 +3,21 @@ import { create } from 'zustand';
 
 interface CompanyAuthState {
   token: string | null;
-  companyId: string | null;   // id de la cuenta de empresa (companyAccountId)
+  companyId: string | null;  
   email: string | null;
   status: string | null;
 
-  // ya la debes tener:
   login: (data: {
-    companyId?: string;        // opcional por compatibilidad
-    id?: string;               // si antes usabas "id"
+    companyId?: string;        
+    id?: string;             
     email: string;
     status: string;
     token: string;
   }) => void;
 
-  logout: () => void;
+  logoutCompany: () => void;
   initialize: () => void;
 
-  // 👉 esta es la que te falta
   saveCompanyData: (data: {
     companyId: string;
     email: string;
@@ -51,17 +49,22 @@ export const useCompanyStore = create<CompanyAuthState>((set) => ({
       localStorage.setItem(LOCAL_STORAGE_TOKEN_KEY, token);
       if (finalCompanyId) {
         localStorage.setItem(LOCAL_STORAGE_COMPANY_ID_KEY, finalCompanyId);
+      } else {
+        localStorage.removeItem(LOCAL_STORAGE_COMPANY_ID_KEY);
       }
     }
   },
 
-  logout: () => {
+  logoutCompany: () => {
+    
     set({
       token: null,
       companyId: null,
       email: null,
       status: null,
     });
+
+    
     if (typeof window !== 'undefined') {
       localStorage.removeItem(LOCAL_STORAGE_TOKEN_KEY);
       localStorage.removeItem(LOCAL_STORAGE_COMPANY_ID_KEY);
@@ -75,21 +78,15 @@ export const useCompanyStore = create<CompanyAuthState>((set) => ({
     const companyId = localStorage.getItem(LOCAL_STORAGE_COMPANY_ID_KEY);
 
     if (token && companyId) {
-      set({
-        token,
-        companyId,
-      });
+      set({ token, companyId });
+    } else {
+    
+      set({ token: null, companyId: null, email: null, status: null });
     }
   },
 
-  // 👉 esta es la acción que usas en SignUpEmployer
   saveCompanyData: ({ companyId, email, status, token }) => {
-    set({
-      companyId,
-      email,
-      status,
-      token,
-    });
+    set({ companyId, email, status, token });
 
     if (typeof window !== 'undefined') {
       localStorage.setItem(LOCAL_STORAGE_TOKEN_KEY, token);

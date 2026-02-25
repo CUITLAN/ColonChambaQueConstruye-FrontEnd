@@ -56,6 +56,7 @@ export interface CompanyDetails {
   landlinePhone?: string;
 }
 
+{/**Checar esta interfaz */}
 export interface JobCardProps {
   id: string;
   status: VacancyStatus;
@@ -86,4 +87,47 @@ export interface JobCardProps {
   email: string;
 
   companyDetails?: CompanyDetails;
+}
+
+export interface VacancyDetailResponse {
+  Vacancy: {
+    id: string;
+    name: string;
+    businessSector: string;
+    modality: string;
+    location: string;
+    numberOpenings: number;
+    description: string;
+    experience: string;
+    gender: string | null;
+    ageRange: [number, number];
+    requiredDegree: string;
+    salary: {
+      coin: string;
+      min: number;
+      max: number;
+    };
+    benefits: string;
+    workingDay: string[];
+    workShift: string;
+    workSchedule: [string, string];
+    additionalInformation: string;
+    status: string;
+    companyStatus: string;
+    checkedAt: string;
+    CompanyId: string;
+  };
+  CompanyAccount: {
+    id: string;
+    firstName: string;
+    lastName: string;
+    email: string;
+    landlinePhone: string;
+    cellPhone: string;
+  };
+  Company: {
+    id: string;
+    legalName: string;
+    tradeName: string;
+  };
 }

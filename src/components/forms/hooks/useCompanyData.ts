@@ -5,7 +5,7 @@ import { useCompanyStore } from '@/app/store/authCompanyStore';
 
 export const useAccountForm = (companyAccount: any) => {
   const router = useRouter();
-  const { companyId: storedCompanyId, logout } = useCompanyStore();
+  const { companyId: storedCompanyId, logoutCompany: logout } = useCompanyStore();
   const [isEditingPersonal, setIsEditingPersonal] = useState(false);
   const [isEditingGeneral, setIsEditingGeneral] = useState(false);
 

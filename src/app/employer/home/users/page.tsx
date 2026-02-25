@@ -19,6 +19,13 @@ const sectionConfig = {
   },
 };
 
+const pickFiniteNumber = (...candidates: any[]): number | undefined => {
+  for (const c of candidates) {
+    const n = typeof c === 'number' ? c : Number(c);
+    if (Number.isFinite(n)) return n;
+  }
+  return undefined;
+};
 
 const mapApiUserToCompanyUser = (entry: any): CompanyUser => {
   const raw = entry?.user ?? entry?.profile ?? entry?.User ?? entry ?? {};
@@ -29,9 +36,9 @@ const mapApiUserToCompanyUser = (entry: any): CompanyUser => {
     lastName: raw.lastName,
     email: raw.email,
     cellPhone: raw.cellPhone,
+    jobExperience: raw.jobExperience,
     academicLevel: raw.academicLevel,
     dateFilter: raw.reviewedAt,
-    jobExperience: raw.jobExperience,
     curriculumURL: raw.curriculumUrl,
   };
 };
@@ -56,15 +63,17 @@ export default function UserLists() {
     // handlers que se pasan al DataTableCustomSearchBar
     const handleSearchChange = (value: string) => {
       setSearch(value);
+      setPagination((p) => ({ ...p, page: 1 }))
     };
 
     
   
     const handleFilterChange = (columnId: string, value: any) => {
       setBackendFilters((prev) => ({
-        ...prev,
-        [columnId]: value,
-      }));
+      ...prev,
+      [columnId]: value,
+    }));
+    setPagination((p) => ({ ...p, page: 1 })); // ✅ reset page al filtrar
     };
 
 
@@ -79,12 +88,16 @@ export default function UserLists() {
   
     useEffect(() => {
       const fetchVacancies = async () => {
+
+        //revisar errorres
         if (!token || !companyId) {
           console.warn('No hay token o companyId, no se hace fetch');
           setIsLoading(false);
           return;
         }
-  
+        
+        setIsLoading(true);
+
         try {
           const params = new URLSearchParams();
 
@@ -157,30 +170,23 @@ export default function UserLists() {
           const result = await response.json();
           console.log('Respuesta API completa:', result);
   
-          const cardUsers =
-            Array.isArray(result?.data?.companyUsers)
-              ? result.data.companyUsers
-              : Array.isArray(result?.data)
-              ? result.data
-              : Array.isArray(result)
-              ? result
-              : [];
-  
+          const cardUsers = Array.isArray(result?.data?.users) ? result.data.users : [];
+          
+          console.log("CardUsers",cardUsers)
+
           if (Array.isArray(cardUsers) && cardUsers.length > 0) {
+
             const mapped = cardUsers.map(mapApiUserToCompanyUser);
+            setCompanyUsers(mapped)
 
-            setCompanyUsers(mapped);
-
-            const total =
-              Number(result?.data?.total) ??
-              Number(result?.data?.pagination?.total) ??
-              Number(result?.meta?.total) ??
-              Number(result?.total) ??
-              mapped.length;
-
+          const total = pickFiniteNumber(
+           result?.data?.total,     // ✅ el bueno
+            result?.meta?.total,
+            result?.total
+          );
             setPagination((prev) => ({
               ...prev,
-              totalItems: Number.isFinite(total) ? total : mapped.length,
+              totalItems: total ?? mapped.length, // ✅ siempre number
             }));
           } else {
             setCompanyUsers([]);

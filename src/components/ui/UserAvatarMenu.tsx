@@ -44,7 +44,7 @@ export default function UserAvatarMenu({
   const [error, setError] = useState<string | null>(null);
 
   const router = useRouter();
-  const { token, id: userId, logout, user: storeUser } = useApplicantStore();
+  const { token, id: userId, logoutAplicant: logout, user: storeUser } = useApplicantStore();
 
   useEffect(() => {
     async function fetchUser() {

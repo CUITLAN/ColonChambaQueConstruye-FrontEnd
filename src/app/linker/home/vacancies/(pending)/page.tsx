@@ -1,12 +1,12 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import TitleSection from '@/components/common/TitleSection';
 import EmptyDisplay from '@/components/empty-display/EmptyDisplay';
 import { InboxIn } from '@solar-icons/react';
 import { DataTableCustomSearchBar } from '@/components/tables/layouts/DateTableCustomSearchBar';
 import NoteRemove from '@/components/common/hugeIcons';
-import { filtersLinkerVacancies, vacanciesLinkerColumns } from '@/components/linker/LinkerTabs';
+import { getVacanciesLinkerColumns, filtersLinkerVacancies } from '@/components/linker/LinkerTabs';
 import { useApplicantStore } from '@/app/store/authApplicantStore';
 import { apiService } from '@/services/api.service';
 import { toast } from 'sonner';
@@ -25,95 +25,96 @@ export default function TablillaPage() {
   const [data, setData] = useState<JobCardProps[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    if (!linkerId || !token) {
-        setLoading(false);
-        return;
-    }
+  const fetchVacancies = useCallback(async () => {
+    if (!linkerId || !token) return;
 
-    const fetchVacancies = async () => {
-      setLoading(true);
-      try {
-        const endpoint = `/linkers/${linkerId}/vacancies?status=REVISION`;
-        const response = await apiService.get(endpoint);
+    setLoading(true);
+    try {
+      const endpoint = `/linkers/${linkerId}/vacancies?status=REVISION`;
+      const response = await apiService.get(endpoint);
 
-        if (!response.ok) {
-          throw new Error(`Error ${response.status}: Error al obtener vacantes`);
-        }
-
-        const result = await response.json();
-        const backendData = result.data?.vacancies || [];
-
-        const mappedData: JobCardProps[] = backendData.map((item: any) => {
-          const v = item.Vacancy || {};
-          const c = item.Company || {};
-          
-          const minAge = Array.isArray(v.ageRange) ? v.ageRange[0] : 0;
-          const maxAge = Array.isArray(v.ageRange) ? v.ageRange[1] : 0;
-
-          return {
-            id: v.id,
-            status: v.status,
-            title: v.name || 'Sin título',
-            company: c.tradeName || 'Empresa desconocida',
-            location: v.location || 'Ubicación no especificada',
-            description: v.description || '',
-            
-            salaryRange: v.salary 
-              ? `$${v.salary.min} - $${v.salary.max} ${v.salary.coin}` 
-              : 'No visible',
-            
-            schedule: v.workShift || 'TIEMPO_COMPLETO',
-            modality: v.modality || 'PRESENCIAL',
-            logoUrl: c.logoUrl || '',
-            createdAt: v.createdAt,
-            sector: v.businessSector || c.workSector || 'No especificado',
-
-            numberOfPositions: v.numberOpenings || 1,
-            BenefitsSection: v.benefits || '',
-            degree: v.requiredDegree || 'No especificada',
-            AdditionalInformation: v.additionalInformation || '',
-            gender: v.gender || 'Indistinto',
-            
-            ageRange: {
-              min: minAge,
-              max: maxAge
-            },
-            
-            RequiredExperience: v.experience || '',
-            
-            cellPhone: c.CompanyAccount?.cellPhone || 'N/A',
-            email: c.CompanyAccount?.email || c.companyEmail || 'N/A',
-
-            companyDetails: {
-              legalName: c.legalName,
-              rfc: c.rfc,
-              street: c.street,
-              streetNumber: c.streetNumber,
-              district: c.district,
-              municipality: c.municipality,
-              workSector: c.workSector,
-              companyEmail: c.companyEmail
-            }
-          };
-        });
-
-        setData(mappedData);
-
-      } catch (error: any) {
-        console.error("Error en fetchVacancies:", error);
-        toast.error('No se pudieron cargar las solicitudes.');
-      } finally {
-        setLoading(false);
+      if (!response.ok) {
+        throw new Error(`Error ${response.status}: Error al obtener vacantes`);
       }
-    };
 
-    fetchVacancies();
+      const result = await response.json();
+      const backendData = result.data?.vacancies || [];
+
+      const mappedData: JobCardProps[] = backendData.map((item: any) => {
+        const v = item.Vacancy || {};
+        const c = item.Company || {};
+        
+        const hasAgeRange = Array.isArray(v.ageRange) && v.ageRange.length === 2;
+        const minAge = hasAgeRange ? v.ageRange[0] : 0;
+        const maxAge = hasAgeRange ? v.ageRange[1] : 0;
+
+        return {
+          id: v.id,
+          status: v.status,
+          title: v.name || 'Sin título',
+          
+          company: c.tradeName || c.legalName || 'Empresa desconocida',
+          location: v.location || 'Ubicación no especificada',
+          description: v.description || '',
+          
+          salaryRange: v.salary 
+            ? `$${v.salary.min} - $${v.salary.max} ${v.salary.coin}` 
+            : 'No visible',
+          
+          schedule: v.workShift || 'TIEMPO_COMPLETO',
+          modality: v.modality || 'PRESENCIAL',
+          logoUrl: c.logoUrl || '',
+          createdAt: v.createdAt,
+          sector: v.businessSector || c.workSector || 'No especificado',
+
+          numberOfPositions: v.numberOpenings || 1,
+          BenefitsSection: v.benefits || '',
+          degree: v.requiredDegree || 'No especificada',
+          AdditionalInformation: v.additionalInformation || '',
+          gender: v.gender || 'Indistinto',
+          
+          ageRange: {
+            min: minAge,
+            max: maxAge
+          },
+          
+          RequiredExperience: v.experience || 'No especificada',
+          
+          cellPhone: c.cellPhone || 'N/A',
+          email: c.email || 'N/A',
+
+          companyDetails: {
+            legalName: c.legalName,
+            rfc: c.rfc,
+            street: c.street,
+            streetNumber: c.streetNumber,
+            district: c.district,
+            municipality: c.municipality,
+            workSector: c.workSector,
+            companyEmail: c.companyEmail
+          }
+        };
+      });
+
+      setData(mappedData);
+
+    } catch (error: any) {
+      console.error("Error en fetchVacancies:", error);
+      toast.error('No se pudieron cargar las solicitudes.');
+    } finally {
+      setLoading(false);
+    }
   }, [linkerId, token]);
+
+  useEffect(() => {
+    fetchVacancies();
+  }, [fetchVacancies]);
+
+  const columns = useMemo(() => getVacanciesLinkerColumns(fetchVacancies), [fetchVacancies]);
 
   const hasData = data.length > 0;
 
-  if (loading) {
+  if (loading && data.length === 0) {
     return (
       <div className="mx-32 flex flex-col gap-5 m-10">
         <TitleSection sections={sectionConfig} currentSection={'profile'} />
@@ -130,7 +131,7 @@ export default function TablillaPage() {
 
       {hasData ? (
         <DataTableCustomSearchBar
-          columns={vacanciesLinkerColumns}
+          columns={columns}
           data={data}
           filters={filtersLinkerVacancies}
         />
