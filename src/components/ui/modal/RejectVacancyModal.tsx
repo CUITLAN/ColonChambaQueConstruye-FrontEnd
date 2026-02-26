@@ -32,11 +32,8 @@ export default function RejectVacancyModal({
       onClose={onClose}
       onConfirm={onConfirm}
       texts={TEXTS}
-      description="¿Por qué no se aprobó esta vacante?"
-       vacancy={{
-        companyName,
-        roleTitle, 
-      }}
+      description="¿Por qué no se aprobó esta solicitud?"
+      
     />
   );
 }

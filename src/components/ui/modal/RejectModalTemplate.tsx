@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useCallback } from 'react';
-import { Card, CardFooter, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
+import { Card, CardFooter, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent } from '@/components/ui/tabs';
 import FormInput from '@/components/forms/FormInput';
@@ -11,8 +11,8 @@ import { zodResolver } from '@hookform/resolvers/zod';
 
 export interface ModalTexts {
   title: string;
-  subtitle: string;  // (lo conservamos por compatibilidad si lo usas en otro lado)
-  content: string;   // texto descriptivo arriba del textarea
+  subtitle?: string;
+  content?: string; 
   cancel: string;
   confirm: string;
 }
@@ -23,19 +23,21 @@ const schema = z.object({
 
 type SchemaFormType = z.infer<typeof schema>;
 
-interface VacancyInfo {
-  companyName?: string;
-  roleTitle?: string;    
+interface InfoBlock {
+  name?: string;
+  detail?: string;
+  nameLabel?: string;  
+  detailLabel?: string; 
 }
 
-interface BaseModalTemplateProps {
+interface RejectModalTemplateProps {
   open?: boolean;
   onClose: () => void;
   onConfirm: (data: SchemaFormType) => void;
   texts: ModalTexts;
   className?: string;
   description: string;
-  vacancy?: VacancyInfo;     
+  info?: InfoBlock;    
 }
 
 export default function RejectModalTemplate({
@@ -44,8 +46,8 @@ export default function RejectModalTemplate({
   texts,
   className = '',
   description,
-  vacancy,
-}: BaseModalTemplateProps) {
+  info,
+}: RejectModalTemplateProps) {
 
   const methods = useForm<SchemaFormType>({
     resolver: zodResolver(schema),
@@ -56,32 +58,18 @@ export default function RejectModalTemplate({
   const { control, handleSubmit } = methods;
 
   const handleConfirm = useCallback((data: SchemaFormType) => {
-    console.log(`${texts.title}`);
     onConfirm(data);
-    console.log(data);
-  }, [onConfirm, texts.title]);
+  }, [onConfirm]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      const code = (e as any).keyCode;
-
-      // Escape → cerrar modal
-      if (e.key === 'Escape' || e.key === 'Esc' || code === 27) {
-        e.preventDefault();
+      if (e.key === 'Escape') {
         onClose();
-        return;
-      }
-
-      // Enter → confirmar acción (respetando validación)
-      if (e.key === 'Enter' || code === 13) {
-        e.preventDefault();
-        handleSubmit(handleConfirm)();
       }
     };
-
-    window.addEventListener('keydown', onKey, true);
-    return () => window.removeEventListener('keydown', onKey, true);
-  }, [onClose, handleSubmit, handleConfirm]);
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [onClose]);
 
   return (
     <div
@@ -93,41 +81,56 @@ export default function RejectModalTemplate({
           <Tabs value="open">
             <TabsContent value="open">
               <Card className="flex flex-col bg-zinc-50 p-8 h-fit min-w-[636px]">
-                <CardTitle>{texts.title}</CardTitle>
+                <CardTitle className="text-xl font-bold uppercase tracking-tight">
+                  {texts.title}
+                </CardTitle>
 
-                {/* Bloque de Empresa/Puesto (opcional) */}
-                {vacancy && (vacancy.companyName || vacancy.roleTitle) && (
-                  <div className="mt-4 mb-2 space-y-2 text-[15px]">
-                    {vacancy.companyName && (
-                      <div>
-                        <span className="font-semibold">Empresa:</span>{' '}
-                        <span>{vacancy.companyName}</span>
+                {info && (info.name || info.detail) && (
+                  <div className="mt-6 mb-2 space-y-2 text-[15px] border-l-4 border-uaq-brand pl-4 bg-white py-3 rounded-r-lg shadow-sm">
+                    {info.name && (
+                      <div className="flex gap-2">
+                        <span className="font-bold text-zinc-600 min-w-[140px]">
+                          {info.nameLabel || "Empresa"}:
+                        </span>
+                        <span className="text-zinc-800">{info.name}</span>
                       </div>
                     )}
-                    {vacancy.roleTitle && (
-                      <div>
-                        <span className="font-semibold">Puesto:</span>{' '}
-                        <span>{vacancy.roleTitle}</span>
+                    {info.detail && (
+                      <div className="flex gap-2">
+                        <span className="font-bold text-zinc-600 min-w-[140px]">
+                          {info.detailLabel || "Puesto"}:
+                        </span>
+                        <span className="text-zinc-800">{info.detail}</span>
                       </div>
                     )}
                   </div>
                 )}
 
-                <CardContent className='p-0'>
+                <CardContent className='p-0 mt-6'>
                   <FormInput
                     control={control}
                     label="Describa observaciones"
                     type="textarea"     
                     name="reason"
                     description={description}
+                    placeholder="Escriba aquí los motivos detallados..."
                   />
                 </CardContent>
 
-                <CardFooter className="flex justify-end gap-10 !p-0">
-                  <Button type="button" variant="ghost" className="text-uaq-danger" onClick={onClose}>
+                <CardFooter className="flex justify-end gap-6 !p-0 mt-8">
+                  <Button 
+                    type="button" 
+                    variant="ghost" 
+                    className="text-zinc-500 hover:text-red-600 hover:bg-red-50 font-semibold" 
+                    onClick={onClose}
+                  >
                     {texts.cancel}
                   </Button>
-                  <Button type="submit" variant="primary" color="danger">
+                  <Button 
+                    type="submit" 
+                    variant="primary" 
+                    className="bg-red-500 hover:bg-red-600 text-white px-8 font-bold rounded-lg"
+                  >
                     {texts.confirm}
                   </Button>
                 </CardFooter>

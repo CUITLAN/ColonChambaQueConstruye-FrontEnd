@@ -1,18 +1,20 @@
 'use client';
 
 import React, { useEffect, useState, useMemo, useCallback } from 'react';
+import { InboxIn } from '@solar-icons/react';
+import { toast } from 'sonner';
+
 import TitleSection from '@/components/common/TitleSection';
 import EmptyDisplay from '@/components/empty-display/EmptyDisplay';
-import { InboxIn } from '@solar-icons/react';
-import { DataTableCustomSearchBar } from '@/components/tables/layouts/DateTableCustomSearchBar';
 import NoteRemove from '@/components/common/hugeIcons';
+import { DataTableCustomSearchBar } from '@/components/tables/layouts/DateTableCustomSearchBar';
 import { getVacanciesLinkerColumns, filtersLinkerVacancies } from '@/components/linker/LinkerTabs';
+
 import { useApplicantStore } from '@/app/store/authApplicantStore';
 import { apiService } from '@/services/api.service';
-import { toast } from 'sonner';
-import { JobCardProps } from '@/interfaces';
+import { JobCardProps, BackendVacancyItem, mapBackendVacancyToJobCard } from '@/interfaces';
 
-const sectionConfig = {
+const SECTION_CONFIG = {
   profile: {
     icon: <InboxIn size={24} weight="Bold" />,
     title: 'SOLICITUDES DE VACANTES PENDIENTES',
@@ -22,87 +24,27 @@ const sectionConfig = {
 
 export default function TablillaPage() {
   const { id: linkerId, token } = useApplicantStore();
-  const [data, setData] = useState<JobCardProps[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [vacancies, setVacancies] = useState<JobCardProps[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
   const fetchVacancies = useCallback(async () => {
     if (!linkerId || !token) return;
 
-    setLoading(true);
+    setIsLoading(true);
     try {
-      const endpoint = `/linkers/${linkerId}/vacancies?status=REVISION`;
-      const response = await apiService.get(endpoint);
+      const response = await apiService.get(`/linkers/${linkerId}/vacancies?status=REVISION`);
+      if (!response.ok) throw new Error(`Error ${response.status}`);
 
-      if (!response.ok) {
-        throw new Error(`Error ${response.status}: Error al obtener vacantes`);
-      }
+      const { data } = await response.json();
+      const items: BackendVacancyItem[] = data?.vacancies || [];
 
-      const result = await response.json();
-      const backendData = result.data?.vacancies || [];
-
-      const mappedData: JobCardProps[] = backendData.map((item: any) => {
-        const v = item.Vacancy || {};
-        const c = item.Company || {};
-        
-        const hasAgeRange = Array.isArray(v.ageRange) && v.ageRange.length === 2;
-        const minAge = hasAgeRange ? v.ageRange[0] : 0;
-        const maxAge = hasAgeRange ? v.ageRange[1] : 0;
-
-        return {
-          id: v.id,
-          status: v.status,
-          title: v.name || 'Sin título',
-          
-          company: c.tradeName || c.legalName || 'Empresa desconocida',
-          location: v.location || 'Ubicación no especificada',
-          description: v.description || '',
-          
-          salaryRange: v.salary 
-            ? `$${v.salary.min} - $${v.salary.max} ${v.salary.coin}` 
-            : 'No visible',
-          
-          schedule: v.workShift || 'TIEMPO_COMPLETO',
-          modality: v.modality || 'PRESENCIAL',
-          logoUrl: c.logoUrl || '',
-          createdAt: v.createdAt,
-          sector: v.businessSector || c.workSector || 'No especificado',
-
-          numberOfPositions: v.numberOpenings || 1,
-          BenefitsSection: v.benefits || '',
-          degree: v.requiredDegree || 'No especificada',
-          AdditionalInformation: v.additionalInformation || '',
-          gender: v.gender || 'Indistinto',
-          
-          ageRange: {
-            min: minAge,
-            max: maxAge
-          },
-          
-          RequiredExperience: v.experience || 'No especificada',
-          
-          cellPhone: c.cellPhone || 'N/A',
-          email: c.email || 'N/A',
-
-          companyDetails: {
-            legalName: c.legalName,
-            rfc: c.rfc,
-            street: c.street,
-            streetNumber: c.streetNumber,
-            district: c.district,
-            municipality: c.municipality,
-            workSector: c.workSector,
-            companyEmail: c.companyEmail
-          }
-        };
-      });
-
-      setData(mappedData);
-
-    } catch (error: any) {
-      console.error("Error en fetchVacancies:", error);
-      toast.error('No se pudieron cargar las solicitudes.');
+      // Uso del mapper importado: El componente permanece limpio
+      setVacancies(items.map(mapBackendVacancyToJobCard));
+    } catch (error) {
+      console.error("Fetch Error:", error);
+      toast.error('No se pudieron cargar las solicitudes pendientes.');
     } finally {
-      setLoading(false);
+      setIsLoading(false);
     }
   }, [linkerId, token]);
 
@@ -112,14 +54,13 @@ export default function TablillaPage() {
 
   const columns = useMemo(() => getVacanciesLinkerColumns(fetchVacancies), [fetchVacancies]);
 
-  const hasData = data.length > 0;
-
-  if (loading && data.length === 0) {
+  if (isLoading && vacancies.length === 0) {
     return (
       <div className="mx-32 flex flex-col gap-5 m-10">
-        <TitleSection sections={sectionConfig} currentSection={'profile'} />
-        <div className="w-full h-64 flex items-center justify-center text-zinc-500">
-          <p>Cargando solicitudes...</p>
+        <TitleSection sections={SECTION_CONFIG} currentSection="profile" />
+        <div className="w-full h-64 flex flex-col items-center justify-center text-zinc-500 gap-3">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-uaq-brand-500"></div>
+          <p className="font-medium">Cargando solicitudes...</p>
         </div>
       </div>
     );
@@ -127,20 +68,21 @@ export default function TablillaPage() {
 
   return (
     <div className="mx-32 flex flex-col gap-5 m-10">
-      <TitleSection sections={sectionConfig} currentSection={'profile'} />
+      <TitleSection sections={SECTION_CONFIG} currentSection="profile" />
 
-      {hasData ? (
+      {vacancies.length > 0 ? (
         <DataTableCustomSearchBar
           columns={columns}
-          data={data}
+          data={vacancies}
           filters={filtersLinkerVacancies}
         />
       ) : (
-        <div className="flex w-full flex-col items-center justify-center text-center">
-            <EmptyDisplay
-                icon={<NoteRemove color="#D4D4D8" width={158} height={166} />}
-                firstLine="Todavía no tienes solicitudes de vacantes en revisión."
-            />
+        <div className="flex w-full flex-col items-center justify-center text-center mt-10">
+          <EmptyDisplay
+            icon={<NoteRemove color="#D4D4D8" width={158} height={166} />}
+            firstLine="Todavía no tienes solicitudes de vacantes en revisión."
+            secondline="Las nuevas vacantes aparecerán listadas en esta sección."
+          />
         </div>
       )}
     </div>

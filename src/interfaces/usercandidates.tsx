@@ -13,3 +13,16 @@ export interface UserCandidate {
   registeredAt: string;
   status: 'REVISION' | 'RECHAZADO' | 'ACTIVO' | 'INACTIVO';
 }
+
+export const listAcademicLevelOptions = [
+  { label: 'Preescolar', value: 'PREESCOLAR' },
+  { label: 'Primaria', value: 'PRIMARIA' },
+  { label: 'Secundaria', value: 'SECUNDARIA' },
+  { label: 'Bachillerato General', value: 'BACHILLERATO_GENERAL' },
+  { label: 'Carrera Técnica', value: 'CARRERA_TECNICA' },
+  { label: 'Licenciatura', value: 'LICENCIATURA' },
+  { label: 'Ingeniería', value: 'INGENIERIA' },
+  { label: 'Maestría', value: 'MAESTRIA' },
+  { label: 'Doctorado', value: 'DOCTORADO' },
+  { label: 'Posdoctorado', value: 'POSDOCTORADO' },
+];
