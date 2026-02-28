@@ -6,7 +6,7 @@ import { VacancyFormType } from '@/validations/registerVacancy';
 import FormComboBadgeSelector from '@/components/forms/FormComboBadgeSelector';
 import { listAreasOptionsConstants } from '@/constants';
 import { useState } from 'react';
-import { Input } from '@nextui-org/react';
+import { Input } from '@heroui/react';
 import FormInput from '@/components/forms/FormInput';
 
 type InterestAreasSelectorProps = {

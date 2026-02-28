@@ -3,7 +3,6 @@
 import { FormProvider, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { registerVacancy, VacancyFormType } from '@/validations/registerVacancy';
-import { Button } from '@/components/ui/button';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 
@@ -25,6 +24,7 @@ export default function EditVacancyForm({ idVacancy }: { idVacancy: string }) {
   const [vacancy, setVacancy] = useState<VacancyU | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [confirmOpen, setConfirmOpen] = useState(false);
 
   useEffect(() => {
     const fetchVacancy = async () => {
@@ -35,7 +35,7 @@ export default function EditVacancyForm({ idVacancy }: { idVacancy: string }) {
 
       try {
         const res = await apiService.get(
-          `/companies/${companyId}/vacancies/${idVacancy}`,
+          `/companies/${companyId}/vacancies/${idVacancy}`
         );
 
         if (!res?.ok) {
@@ -47,7 +47,6 @@ export default function EditVacancyForm({ idVacancy }: { idVacancy: string }) {
         const json = await res.json();
         const data = json?.data?.vacancy ?? json?.data ?? json;
         setVacancy(data as VacancyU);
-        console.log('Vacancy data:', data);
       } catch (e) {
         console.error('Error cargando vacante', e);
         setVacancy(null);
@@ -93,10 +92,6 @@ export default function EditVacancyForm({ idVacancy }: { idVacancy: string }) {
   useEffect(() => {
     if (!vacancy) return;
 
-    const rawCoin = vacancy.salary?.coin?.toLowerCase();
-    const coin: 'mxn' | 'usd' | undefined =
-        rawCoin === 'mxn' || rawCoin === 'usd' ? rawCoin : undefined;
-
     reset({
       name: vacancy.name ?? '',
       sector: vacancy.businessSector ?? '',
@@ -126,7 +121,7 @@ export default function EditVacancyForm({ idVacancy }: { idVacancy: string }) {
         vacancy.salary && vacancy.salary.max != null
           ? String(vacancy.salary.max)
           : '',
-      currency: coin ?? 'mxn',
+      currency: vacancy.salary?.coin?.toLowerCase() === 'usd' ? 'usd' : 'mxn',
       benefits: vacancy.benefits ?? '',
       workingDays: vacancy.workingDay ?? [],
       workShift: vacancy.workShift ?? '',
@@ -143,8 +138,6 @@ export default function EditVacancyForm({ idVacancy }: { idVacancy: string }) {
     });
   }, [vacancy, reset]);
 
-  const [submittedData, setSubmittedData] = useState<VacancyFormType | null>(null);
-
   const onSubmit = async (data: VacancyFormType) => {
     if (!token || !companyId) return;
 
@@ -155,7 +148,9 @@ export default function EditVacancyForm({ idVacancy }: { idVacancy: string }) {
       businessSector: data.sector || undefined,
       modality: data.modality || undefined,
       location: data.location || undefined,
-      numberOpenings: data.numberOpenings ? Number(data.numberOpenings) : undefined,
+      numberOpenings: data.numberOpenings
+        ? Number(data.numberOpenings)
+        : undefined,
       description: data.description || undefined,
       experience: data.experience || undefined,
       gender: data.gender || undefined,
@@ -173,7 +168,7 @@ export default function EditVacancyForm({ idVacancy }: { idVacancy: string }) {
             }
           : undefined,
       benefits: data.benefits || undefined,
-      workingDay: Array.isArray(data.workingDays) ? data.workingDays : [],
+      workingDay: data.workingDays ?? [],
       workShift: data.workShift || undefined,
       workSchedule:
         data.workHourStart || data.workHourEnd
@@ -183,26 +178,28 @@ export default function EditVacancyForm({ idVacancy }: { idVacancy: string }) {
     };
 
     try {
-      const response = await apiService.put(
+      const response = await apiService.patch(
         `/companies/${companyId}/vacancies/${idVacancy}`,
-        payload,
+        payload
       );
 
       if (!response?.ok) {
-        console.error('Error al actualizar la vacante:', response?.status, response?.statusText);
+        console.error('Error al actualizar la vacante');
         return;
       }
 
-      const json = await response.json();
-      const updated = json?.data?.vacancy ?? json?.data ?? json;
-      setVacancy(updated as VacancyU);
       router.push('/employer/home/vacancies');
     } catch (error) {
-      console.error('Error inesperado al actualizar la vacante:', error);
+      console.error('Error inesperado:', error);
     } finally {
       setIsSubmitting(false);
     }
   };
+
+  const confirmSave = handleSubmit(async (data) => {
+    setConfirmOpen(false);
+    await onSubmit(data);
+  });
 
   if (isLoading) {
     return (
@@ -222,16 +219,10 @@ export default function EditVacancyForm({ idVacancy }: { idVacancy: string }) {
 
   return (
     <FormProvider {...methods}>
-      <form
-        onSubmit={handleSubmit(onSubmit)}
-        className="mx-12 bg-white pt-12 space-y-4"
-      >
+      <form onSubmit={(e) => e.preventDefault()} className="mx-12 pt-12 space-y-4">
         <h2 className="text-4xl font-bold text-center text-[var(--secundary)]">
           Editar vacante
         </h2>
-        <p className="text-center text-xl mb-6 w-[578px] justify-self-center pb-5">
-          Edita la información de la oferta de trabajo
-        </p>
 
         <GeneralInfoSection control={control} />
         <RequiredExperience control={control} />
@@ -241,10 +232,46 @@ export default function EditVacancyForm({ idVacancy }: { idVacancy: string }) {
         <InterestAreasSelector control={control} />
 
         <div className="flex justify-end">
-          <Button type="submit" disabled={isSubmitting}>
+          <button
+            type="button"
+            disabled={isSubmitting}
+            onClick={() => setConfirmOpen(true)}
+            className="bg-[var(--secundary)] text-white px-6 py-2 rounded-md hover:opacity-90 transition"
+          >
             {isSubmitting ? 'Guardando...' : 'Guardar cambios'}
-          </Button>
+          </button>
         </div>
+
+        {confirmOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+            <div className="w-full max-w-md rounded-lg bg-white p-6 shadow-xl">
+              <h3 className="text-lg font-semibold">Confirmar cambios</h3>
+              <p className="mt-2 text-sm text-gray-600">
+                ¿Estás seguro de los datos de la vacante? Esta pasará a revisión.
+              </p>
+
+              <div className="mt-6 flex justify-end gap-6">
+                <button
+                  type="button"
+                  disabled={isSubmitting}
+                  onClick={() => setConfirmOpen(false)}
+                  className="text-[#E5484D] font-semibold hover:opacity-80 transition"
+                >
+                  Cancelar
+                </button>
+
+                <button
+                  type="button"
+                  disabled={isSubmitting}
+                  onClick={confirmSave}
+                  className="text-[#22C55E] font-semibold hover:opacity-80 transition"
+                >
+                  {isSubmitting ? 'Guardando...' : 'Aceptar'}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </form>
     </FormProvider>
   );

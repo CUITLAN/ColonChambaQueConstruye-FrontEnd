@@ -1,6 +1,6 @@
 'use client';
 import { careers1, careers2 } from '@/constants';
-import { Chip } from '@nextui-org/react';
+import { Chip } from '@heroui/react';
 
 export function AppropriateJob() {
   const repeatedCareers1 = [...careers1, ...careers1];
