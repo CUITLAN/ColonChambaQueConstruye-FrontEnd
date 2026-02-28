@@ -1,6 +1,6 @@
 import { listAreasOptionsConstants, listModalityOptionsConstants, listWorkingHoursOptionsConstants, sector } from "@/constants";
 import { filterType } from "@/interfaces/table";
-import { modal } from "@nextui-org/react";
+import { modal } from "@heroui/react";
 
 export const filtersVacancies: filterType[] = [
   {

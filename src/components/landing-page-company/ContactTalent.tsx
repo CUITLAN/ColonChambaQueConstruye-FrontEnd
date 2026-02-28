@@ -1,6 +1,6 @@
 'use client';
 import { careers1, careers2 } from '@/constants';
-import { Chip } from '@nextui-org/react';
+import { Chip } from '@heroui/react';
 
 export function ContactTalent() {
   const allCareers = [...careers1, ...careers2];

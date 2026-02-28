@@ -15,7 +15,7 @@ import React from 'react';
 import { Button } from '../ui/button';
 import { TrashBinTrash } from '@solar-icons/react';
 import { FormOptionsProps, SelectOption } from '@/interfaces/form';
-import { cn } from '@nextui-org/react';
+import { cn } from '@heroui/react';
 
 export default function FormOptions<T extends FieldValues>({
   control,
