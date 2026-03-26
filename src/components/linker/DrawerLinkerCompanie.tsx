@@ -142,7 +142,10 @@ export default function DrawerLinkerCompany({
                   className="px-6 font-bold"
                   variant="primary" color="danger"
                   disabled={isSubmitting}
-                  onClick={() => setShowRejectModal(true)}
+                  onClick={() => {
+                    setShowRejectModal(true);
+                    setOpen(false);
+                  }}
                 >
                   Rechazar
                 </Button>
@@ -150,7 +153,10 @@ export default function DrawerLinkerCompany({
                   className="px-6 font-bold"
                   variant="primary" color="success"
                   disabled={isSubmitting}
-                  onClick={() => setShowAllowModal(true)}
+                  onClick={() => {
+                    setShowAllowModal(true);
+                    setOpen(false);
+                  }}
                 >
                   Aprobar
                 </Button>

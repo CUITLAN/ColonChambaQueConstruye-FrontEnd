@@ -1,7 +1,7 @@
 // email-verification-code-company.tsx
 'use client';
 
-import { useState, useRef } from 'react';
+import React, { useState, useRef } from 'react';
 import { FormProvider, useForm } from 'react-hook-form';
 import { FormOTPValidation } from '@/components/forms/FormOTPValidation';
 import { Button } from '@/components/ui/button';
@@ -9,18 +9,47 @@ import { useCompanyStore } from '@/app/store/authCompanyStore';
 
 interface OtpInputProps {
   length?: number;
-  onSuccess?:()=>void
+  onSuccess?: () => void;
+  onResend?: () => Promise<void>;
 }
 
 export default function EmailVerificationCodeCompany({
   length = 6,
-  onSuccess
+  onSuccess,
+  onResend
 }: OtpInputProps) {
   const companyId = useCompanyStore((store) => store.companyId);
   const token = useCompanyStore((store) => store.token);
 
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const [timeLeft, setTimeLeft] = useState(90);
+  const [canResend, setCanResend] = useState(false);
+
+  React.useEffect(() => {
+    if (timeLeft <= 0) {
+      setCanResend(true);
+      return;
+    }
+    const timer = setInterval(() => {
+      setTimeLeft((prev) => prev - 1);
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [timeLeft]);
+
+  const handleResendClick = async () => {
+    if (!canResend || !onResend) return;
+    setCanResend(false);
+    setTimeLeft(90);
+    await onResend();
+  };
+
+  const formatTime = (seconds: number) => {
+    const m = Math.floor(seconds / 60);
+    const s = seconds % 60;
+    return `${m}:${s < 10 ? '0' : ''}${s}`;
+  };
 
   const methods = useForm({ defaultValues: { otp: Array(length).fill('') } });
   const { control, watch, handleSubmit } = methods;
@@ -75,7 +104,7 @@ export default function EmailVerificationCodeCompany({
 
       console.log('Código validado correctamente:', result);
       onSuccess?.();
-      
+
     } catch (err) {
       console.error(err);
       setError('Error al validar el código.');
@@ -120,15 +149,31 @@ export default function EmailVerificationCodeCompany({
             ))}
           </div>
 
-          <Button
-            variant="primary"
-            color="brand"
-            type="submit"
-            className="mt-8 w-full max-w-xs"
-            disabled={isLoading}
-          >
-            {isLoading ? 'Verificando...' : 'Validar Código'}
-          </Button>
+          <div className="mt-8 flex w-full items-center justify-between">
+            <div className="flex flex-col text-left text-sm">
+              <p className="text-gray-500">¿No lo recibiste?</p>
+              <button
+                type="button"
+                disabled={!canResend}
+                className={`text-left font-medium ${canResend ? 'text-[#FF7F40] hover:underline' : 'cursor-not-allowed text-gray-400'}`}
+                onClick={handleResendClick}
+              >
+                {canResend ? 'Reenviar código' : `Reenviar en ${formatTime(timeLeft)}`}
+              </button>
+            </div>
+
+            <div className="flex gap-2">
+              <Button
+                variant="primary"
+                color="brand"
+                type="submit"
+                className="w-full max-w-xs"
+                disabled={isLoading}
+              >
+                {isLoading ? 'Verificando...' : 'Continuar'}
+              </Button>
+            </div>
+          </div>
         </form>
       </FormProvider>
     </div>

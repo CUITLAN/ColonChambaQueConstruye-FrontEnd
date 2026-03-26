@@ -1,5 +1,3 @@
-// Este store guarda token, id, email y status del usuario.
-// El backend gestiona la expiración del token (1 día).
 
 import { create } from 'zustand';
 

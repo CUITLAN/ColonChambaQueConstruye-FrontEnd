@@ -26,14 +26,15 @@ import ApplicantAvatar from '../applicant/AplicantAvatar';
 import { useCompanyStore } from '@/app/store/authCompanyStore';
 
 interface HeaderProps {
-
-  companyTitle?: string;
+  companyTitle: string;
   companyImageUrl?: string;
-
   userIcon?: ReactNode;
   logOut?: ReactNode;
   showProfileButton?: boolean;
   logoutRedirectPath?: string;
+
+  /** ✅ Nuevo: modo linker */
+  variant?: 'default' | 'linker';
 }
 
 export default function Header({
@@ -43,6 +44,7 @@ export default function Header({
   logOut = <Logout2 className="h-5 w-5" />,
   showProfileButton = true,
   logoutRedirectPath = '/',
+  variant = 'default',
 }: HeaderProps) {
 
   const router = useRouter();
@@ -59,6 +61,8 @@ export default function Header({
 
   // const {logout}=useApplicantStore()
   const { user } = useUserStore();
+
+  const { logout } = useApplicantStore();
 
   const openLogoutModal = () => setShowLogout(true);
   const closeLogoutModal = () => setShowLogout(false);
@@ -84,7 +88,11 @@ export default function Header({
             <img src="/UCQC.png" alt="Colon" className="h-10 w-28 scale-100" />
           </Link>
           <Link href="/" className="text-lg font-bold">
-            <img src="/ADMON24-27-1-03.png" alt="Colon" className="h-10 w-28 scale-100" />
+            <img
+              src="/ADMON24-27-1-03.png"
+              alt="Colon"
+              className="h-10 w-28 scale-100"
+            />
           </Link>
         </div>
 
@@ -122,7 +130,11 @@ export default function Header({
                 </Link>
               )}
 
-              <DropdownMenuItem onClick={openLogoutModal} className="text-red-600">
+              {/* ✅ Solo Cerrar sesión */}
+              <DropdownMenuItem
+                onClick={openLogoutModal}
+                className="text-red-600 cursor-pointer"
+              >
                 {logOut}
                 <span className="ml-2">Cerrar sesión</span>
               </DropdownMenuItem>

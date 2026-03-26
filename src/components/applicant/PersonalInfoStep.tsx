@@ -13,7 +13,6 @@ interface ApplicantDetailsStepProps {
 }
 
 export default function PersonalInfoStep({ control }: ApplicantDetailsStepProps) {
-  
 
   return (
     <div>

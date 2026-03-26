@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react'; 
+import React, { useState } from 'react';
 import FormInput from '@/components/forms/FormInput';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
@@ -17,8 +17,9 @@ import Alert from '@/components/ui/Alerts';
 export default function PublicLogin() {
   const router = useRouter();
   const { login } = useCompanyStore();
-  
+
   const [showErrorAlert, setShowErrorAlert] = useState(false);
+  const [showTooManyRequestsAlert, setShowTooManyRequestsAlert] = useState(false);
 
   const methods = useForm<LoginFormType>({
     resolver: zodResolver(loginSchema),
@@ -33,6 +34,7 @@ export default function PublicLogin() {
 
   const onSubmit = async (data: LoginFormType) => {
     setShowErrorAlert(false);
+    setShowTooManyRequestsAlert(false);
 
     try {
       const normalizedEmail = data.email.trim().toLowerCase();
@@ -82,12 +84,13 @@ export default function PublicLogin() {
       const isCompanyActive = companyStatus === 'ACTIVA' || companyStatus === 'ACTIVO';
 
       if (isAccountActive && isCompanyActive) {
-        login({
-          token: token,
-          companyId: companyId,
-          email: normalizedEmail, 
-          status: accountStatus,
-        });
+        if (accountData.token && companyId) {
+          login({
+            token: accountData.token,
+            companyId,
+            email: normalizedEmail,
+            status: accountStatus,
+          });
 
         toast.success('Inicio de sesión exitoso');
         router.push('/employer/home/vacancies');
@@ -107,15 +110,24 @@ export default function PublicLogin() {
       
     } catch (error: any) {
       console.error('Error en login:', error?.message);
-      
-      const errorMsg = error?.message || "";
+
+      const errorMsg = error?.message || '';
 
       if (
-        errorMsg.includes("User doesn't exist") || 
-        errorMsg.includes("Not Found") ||
-        errorMsg.includes("404") ||
-        errorMsg.includes("401") ||
-        errorMsg.includes("Bad credentials")
+        error?.response?.status === 429 ||
+        errorMsg.includes('429') ||
+        errorMsg.includes('Too Many Requests')
+      ) {
+        setShowTooManyRequestsAlert(true);
+        return;
+      }
+
+      if (
+        errorMsg.includes("User doesn't exist") ||
+        errorMsg.includes('Not Found') ||
+        errorMsg.includes('404') ||
+        errorMsg.includes('401') ||
+        errorMsg.includes('Bad credentials')
       ) {
         setShowErrorAlert(true);
       } else {
@@ -127,13 +139,21 @@ export default function PublicLogin() {
   return (
     <>
       <Headersimple />
-      
-      <Alert 
+
+      <Alert
         isVisible={showErrorAlert}
         onClose={() => setShowErrorAlert(false)}
         type="error"
         title="Credenciales inválidas"
         description="El correo o la contraseña son incorrectos."
+      />
+
+      <Alert
+        isVisible={showTooManyRequestsAlert}
+        onClose={() => setShowTooManyRequestsAlert(false)}
+        type="warning"
+        title="Demasiadas peticiones"
+        description="Muchas peticiones espera un momento"
       />
 
       <div
@@ -154,11 +174,12 @@ export default function PublicLogin() {
             </div>
 
             <FormProvider {...methods}>
-              <form 
-                onSubmit={handleSubmit(onSubmit)} 
+              <form
+                onSubmit={handleSubmit(onSubmit)}
                 className="mt-8 space-y-4"
                 onChange={() => {
-                   if(showErrorAlert) setShowErrorAlert(false);
+                  if (showErrorAlert) setShowErrorAlert(false);
+                  if (showTooManyRequestsAlert) setShowTooManyRequestsAlert(false);
                 }}
               >
                 <div className="space-y-10">
@@ -185,7 +206,7 @@ export default function PublicLogin() {
 
                 <div>
                   <Link
-                    href={'recovery'}
+                    href="/login/recovery/company"
                     className="block text-right font-medium no-underline hover:no-underline focus:no-underline"
                   >
                     ¿Olvidaste tu contraseña?

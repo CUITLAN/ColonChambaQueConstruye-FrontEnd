@@ -41,7 +41,7 @@ export function RecoveryCodePageComponent() {
           <div className="h-full w-full max-w-2xl space-y-8 rounded-md border border-gray-300 bg-white px-12 py-6 shadow-sm">
             
             <Button variant="ghost" className="scale-150" asChild>
-              <Link href="/login/recovery">
+              <Link href="/login/recovery/applicant">
                 <ArrowLeft className="h-50 w-50" />
               </Link>
             </Button>
@@ -49,7 +49,7 @@ export function RecoveryCodePageComponent() {
             <EmailCodeValidationStep
               email={email}
               onVerified={handleVerified}
-              onBack={() => router.push('/login/recovery')}
+              onBack={async () => { router.push('/login/recovery/applicant'); }}
               onResend={handleResend}
             />
           </div>

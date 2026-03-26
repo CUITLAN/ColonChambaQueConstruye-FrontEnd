@@ -10,19 +10,35 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { ApplicantFormType, applicantSchema } from '@/validations/applicantSchema';
 import { useRouter } from 'next/navigation';
 import { useApplicantStore } from '@/app/store/authApplicantStore';
+import Alert from '@/components/common/Alert';
 
 export default function ApplicantSignUp() {
   const [step, setStep] = useState(1);
   const [stepValid, setStepValid] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+
+  const [alertConfig, setAlertConfig] = useState<{
+    isVisible: boolean;
+    type: 'error' | 'warning';
+    title: string;
+    description: string;
+  }>({
+    isVisible: false,
+    type: 'error',
+    title: '',
+    description: '',
+  });
+
+  const closeAlert = () => {
+    setAlertConfig((prev) => ({ ...prev, isVisible: false }));
+  };
   const router = useRouter();
 
   const { login, token, id: userId } = useApplicantStore();
 
   const methods = useForm<ApplicantFormType>({
     resolver: zodResolver(applicantSchema),
-    defaultValues: {  
+    defaultValues: {
       name: '',
       lastName: '',
       address: '',
@@ -30,22 +46,22 @@ export default function ApplicantSignUp() {
       email: '',
       password: '',
       confirmPassword: '',
-      
-      schooling: '', 
+
+      schooling: '',
       career: '',
       professionalSummary: '',
       jobLocationPreference: '',
       preferredHours: '',
       employmentMode: '',
-      
+
       telefono: { code: '+52', number: '' },
-      
+
       profilePhoto: null,
       cvFile: undefined,
     },
     mode: 'onSubmit',
     shouldFocusError: true,
-    shouldUnregister: false 
+    shouldUnregister: false
   });
 
   const { control, handleSubmit, trigger, watch, getValues } = methods;
@@ -82,18 +98,18 @@ export default function ApplicantSignUp() {
       const fieldsToValidate: (keyof ApplicantFormType)[] = [
         'name', 'lastName', 'address', 'birthDate', 'email', 'telefono', 'password', 'confirmPassword',
       ];
-      
+
       const ok = await trigger(fieldsToValidate);
       if (!ok) return;
 
       setIsSubmitting(true);
-      setError(null);
-      
+      closeAlert();
+
       try {
         const formData = getValues();
-        
+
         const telObj = formData.telefono as { code: string; number: string };
-        const codeStr = (telObj.code || '+52').replace('+', ''); 
+        const codeStr = (telObj.code || '+52').replace('+', '');
         const numberStr = telObj.number;
 
         const finalCellPhone = `${telObj.code}${numberStr}`;
@@ -122,7 +138,7 @@ export default function ApplicantSignUp() {
           const backendMsg = result.message || 'Error al registrarse';
           throw new Error(Array.isArray(backendMsg) ? backendMsg[0] : backendMsg);
         }
-        
+
         if (result.data && result.data.token) {
           login({
             id: result.data.id,
@@ -136,76 +152,107 @@ export default function ApplicantSignUp() {
 
       } catch (err) {
         console.error('Error:', err);
-        setError(err instanceof Error ? err.message : 'Error al registrarse');
+        let errorMsg = err instanceof Error ? err.message : 'Error al registrarse';
+
+        if (errorMsg.toLowerCase().includes('already exist') || errorMsg.toLowerCase().includes('in use') || errorMsg.toLowerCase().includes('ya exist')) {
+          errorMsg = 'El correo electrónico ya está registrado. Intenta iniciar sesión.';
+        }
+
+        setAlertConfig({
+          isVisible: true,
+          type: 'error',
+          title: 'Error de registro',
+          description: errorMsg,
+        });
       } finally {
         setIsSubmitting(false);
       }
     }
   };
 
+  const handleResendCode = async () => {
+    try {
+      const { email } = getValues();
+      await fetch(`/api/v1/verifications/user`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
+      });
+      console.log("Correo de verificación reenviado exitosamente");
+    } catch (error) {
+      console.error("Error al reenviar código:", error);
+    }
+  };
+
+
   const handleFinalSubmit = async () => {
     setIsSubmitting(true);
-    setError(null);
+    closeAlert();
 
     try {
-        const formData = getValues();
-        
-        const professionalData = {
-            academicLevel: formData.schooling,
-            degree: formData.career,
-            jobExperience: formData.professionalSummary, 
-            desiredPosition: formData.jobLocationPreference, 
-        };
+      const formData = getValues();
 
-        console.log("Guardando datos profesionales:", professionalData);
+      const professionalData = {
+        academicLevel: formData.schooling,
+        degree: formData.career,
+        jobExperience: formData.professionalSummary,
+        desiredPosition: formData.jobLocationPreference,
+      };
 
-        const responseData = await fetch(`/api/v1/users/${userId}/register`, {
-            method: 'PUT',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}`
-            },
-            body: JSON.stringify(professionalData),
+      console.log("Guardando datos profesionales:", professionalData);
+
+      const responseData = await fetch(`/api/v1/users/${userId}/register`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(professionalData),
+      });
+
+      if (!responseData.ok) {
+        const errorText = await responseData.text();
+        throw new Error(`Error en datos profesionales: ${errorText}`);
+      }
+
+      if (formData.cvFile instanceof File) {
+
+        if (formData.cvFile.type !== 'application/pdf') {
+          throw new Error("El archivo de currículum debe ser un PDF válido.");
+        }
+
+        console.log("Subiendo archivo de CV...");
+        const fileData = new FormData();
+        fileData.append('file', formData.cvFile);
+
+        const responseCv = await fetch(`/api/v1/users/${userId}/curriculum/upload`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`
+          },
+          body: fileData
         });
 
-        if (!responseData.ok) {
-            const errorText = await responseData.text();
-            throw new Error(`Error en datos profesionales: ${errorText}`);
+        if (!responseCv.ok) {
+          // Si falla el CV pero el registro pasó, solo advertimos (o lanza error si es obligatorio)
+          console.warn("El registro se completó pero hubo un error subiendo el CV");
+        } else {
+          console.log("CV subido correctamente");
         }
+      }
 
-        if (formData.cvFile instanceof File) {
-            
-            if (formData.cvFile.type !== 'application/pdf') {
-                throw new Error("El archivo de currículum debe ser un PDF válido.");
-            }
-
-            console.log("Subiendo archivo de CV...");
-            const fileData = new FormData();
-            fileData.append('file', formData.cvFile);
-
-            const responseCv = await fetch(`/api/v1/users/${userId}/curriculum/upload`, {
-                method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${token}`
-                },
-                body: fileData
-            });
-
-            if (!responseCv.ok) {
-                // Si falla el CV pero el registro pasó, solo advertimos (o lanza error si es obligatorio)
-                console.warn("El registro se completó pero hubo un error subiendo el CV");
-            } else {
-                console.log("CV subido correctamente");
-            }
-        }
-
-        router.push('/login/waiting');
+      router.push('/login/waiting');
 
     } catch (err) {
-        console.error(err);
-        setError("Error al finalizar el registro. Revisa la consola.");
+      console.error(err);
+      setAlertConfig({
+        isVisible: true,
+        type: 'error',
+        title: 'Error al finalizar',
+        description: "No se pudo finalizar el registro. Revisa la consola.",
+      });
     } finally {
-        setIsSubmitting(false);
+      setIsSubmitting(false);
     }
   };
 
@@ -227,37 +274,40 @@ export default function ApplicantSignUp() {
         </h2>
       </div>
 
-      {error && (
-        <div className="mb-4 rounded-md bg-red-50 p-4 text-sm text-red-800 border border-red-100">
-          {error}
-        </div>
-      )}
+      <Alert
+        isVisible={alertConfig.isVisible}
+        onClose={closeAlert}
+        type={alertConfig.type}
+        title={alertConfig.title}
+        description={alertConfig.description}
+      />
 
       <FormProvider {...methods}>
         <div className="mt-8">
-          
+
           {step === 1 && <PersonalInfoStep control={control} />}
-          
+
           {step === 2 && (
-            <EmailVerificationCode 
-               onSuccess={() => {
-                 setStep(3);
-               }}
+            <EmailVerificationCode
+              onSuccess={() => {
+                setStep(3);
+              }}
+              onResend={handleResendCode}
             />
           )}
 
           {step === 3 && <ProfessionalInfoStep control={control} />}
-          
+
           {step !== 2 && (
             <div className="flex justify-center mt-8">
-                <Button
-                    type="button"
-                    onClick={step === 1 ? handleSignupStep1 : handleFinalSubmit}
-                    disabled={isSubmitting}
-                    className="w-full md:w-auto px-8 py-6 text-lg"
-                >
-                    {getButtonText()}
-                </Button>
+              <Button
+                type="button"
+                onClick={step === 1 ? handleSignupStep1 : handleFinalSubmit}
+                disabled={isSubmitting}
+                className="w-full md:w-auto px-8 py-6 text-lg"
+              >
+                {getButtonText()}
+              </Button>
             </div>
           )}
         </div>

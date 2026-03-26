@@ -1,4 +1,4 @@
-import { redirect } from 'next/navigation';
+'use client';
 
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
@@ -27,13 +27,13 @@ interface VerifyUserResponse {
     message: string;
     sent: boolean;
     verificationId?: string;
-    token?: string;
+    token?: string; 
   };
 }
 
 export default function RecoveryPage() {
   const [step, setStep] = useState(1);
-
+  
   const { setRecoveryData, email: storedEmail, token: storedToken } = useRecoveryStore();
 
   const [stepValid, setStepValid] = useState(false);
@@ -92,11 +92,11 @@ export default function RecoveryPage() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email }),
     });
-
+    
     const result: VerifyUserResponse = await response.json();
 
     const isSuccess = response.ok && (result.statusCode === 200 || result.statusCode === 201) && result.data?.success;
-
+    
     if (!isSuccess) {
       throw new Error('No se encontró el correo');
     }
@@ -104,7 +104,7 @@ export default function RecoveryPage() {
   };
 
   const handleNextStep = async () => {
-    closeAlert();
+    closeAlert(); 
 
     if (step === 1) {
       const ok = await trigger('email');
@@ -114,9 +114,9 @@ export default function RecoveryPage() {
       try {
         const { email } = getValues();
         await sendVerificationEmail(email);
-
+        
         console.log("Correo enviado exitosamente");
-        setStep(2);
+        setStep(2); 
         setStepValid(true);
 
       } catch (err) {
@@ -146,32 +146,32 @@ export default function RecoveryPage() {
       setIsSubmitting(true);
       try {
         const { email, password } = getValues();
-
+        
         const response = await fetch(`/api/v1/password-reset/user`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            email: email || storedEmail,
+          body: JSON.stringify({ 
+            email: email || storedEmail, 
             newPassword: password,
-            token: storedToken
+            token: storedToken 
           }),
         });
 
         const result = await response.json();
 
         if (response.ok && (result.statusCode === 200 || result.statusCode === 201) && result.data?.updated) {
-          setStep(4);
+           setStep(4);
         } else {
-          throw new Error('Error al actualizar');
+           throw new Error('Error al actualizar');
         }
 
       } catch (err) {
         setAlertConfig({
-          isVisible: true,
-          type: 'error',
-          title: 'Error',
-          description: 'No se pudo cambiar la contraseña. Intenta nuevamente.',
-        });
+            isVisible: true,
+            type: 'error',
+            title: 'Error',
+            description: 'No se pudo cambiar la contraseña. Intenta nuevamente.',
+          });
       } finally {
         setIsSubmitting(false);
       }
@@ -185,7 +185,7 @@ export default function RecoveryPage() {
 
     try {
       const { email } = getValues();
-
+      
       const codeInt = parseInt(codeStr, 10);
 
       if (isNaN(codeInt)) {
@@ -195,23 +195,23 @@ export default function RecoveryPage() {
       const response = await fetch(`/api/v1/reset-password-verification/user`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          email: email || storedEmail,
-          code: codeInt
+        body: JSON.stringify({ 
+            email: email || storedEmail, 
+            code: codeInt 
         }),
       });
 
-      const result = await response.json();
+      const result = await response.json(); 
 
       if (response.ok && (result.statusCode === 200 || result.statusCode === 201) && result.data?.verified) {
-
-        if (result.data.token) {
-          setRecoveryData(email || storedEmail || '', result.data.token);
-        }
-
-        setStep(3);
+         
+         if (result.data.token) {
+             setRecoveryData(email || storedEmail || '', result.data.token);
+         }
+         
+         setStep(3); 
       } else {
-        throw new Error('Código inválido');
+         throw new Error('Código inválido');
       }
 
     } catch (err) {
@@ -230,10 +230,10 @@ export default function RecoveryPage() {
   const handleResendCode = async () => {
     closeAlert();
     try {
-      const { email } = getValues();
-      await sendVerificationEmail(email || storedEmail || '');
+        const { email } = getValues();
+        await sendVerificationEmail(email || storedEmail || '');
     } catch (error) {
-      console.error("Error reenviando", error);
+        console.error("Error reenviando", error);
     }
   };
 
@@ -251,7 +251,7 @@ export default function RecoveryPage() {
     <>
       <HeaderSimple />
 
-      <Alert
+      <Alert 
         isVisible={alertConfig.isVisible}
         onClose={closeAlert}
         type={alertConfig.type}
@@ -270,31 +270,29 @@ export default function RecoveryPage() {
       >
         <main className="flex h-fit flex-col items-center justify-center gap-10">
           <div className="h-full w-full max-w-2xl space-y-8 rounded-md border border-gray-300 bg-white px-12 py-6 shadow-sm">
-
-            {step < 4 && (
-              <div className="mb-4 flex items-center justify-start gap-4">
-                {step === 1 ? (
-                  <Link href="/login/applicant">
-                    <Button variant="ghost" className="scale-150">
-                      <ArrowLeft className="h-5 w-5" />
-                    </Button>
-                  </Link>
-                ) : (
-                  <Button
-                    variant="ghost"
-                    className="scale-150"
-                    type="button"
-                    onClick={() => setStep((s) => Math.max(1, s - 1))}
-                  >
+            
+            <div className="mb-4 flex items-center justify-start gap-4">
+              {step === 1 ? (
+                <Link href="/">
+                  <Button variant="ghost" className="scale-150">
                     <ArrowLeft className="h-5 w-5" />
                   </Button>
-                )}
-              </div>
-            )}
+                </Link>
+              ) : (
+                <Button
+                  variant="ghost"
+                  className="scale-150"
+                  type="button"
+                  onClick={() => setStep((s) => Math.max(1, s - 1))}
+                >
+                  <ArrowLeft className="h-5 w-5" />
+                </Button>
+              )}
+            </div>
 
             <FormProvider {...methods}>
               <div className="space-y-6">
-
+                
                 {step === 1 && (
                   <div className="space-y-8">
                     <div className="flex flex-col items-center gap-4">

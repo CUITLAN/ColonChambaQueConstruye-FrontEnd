@@ -8,7 +8,7 @@ import { useRouter } from 'next/navigation';
 import SignUpEmployer from '@/components/employer/SignUpEmployer';
 import EmailVerificationCodeCompany from '@/components/ui/email-verification-code-company';
 import SignUpEmployerCompanySection from '@/components/employer/SignUpEmployerCompanySection';
-
+import { useCompanyStore } from '@/app/store/authCompanyStore';
 
 import { AlertState, HttpErrorPayload } from '@/interfaces/AlertInterface';
 import Alerts from '../ui/Alerts';
@@ -25,18 +25,20 @@ export default function CompanySignup() {
   const totalSteps = 3;
   const router = useRouter();
 
+  const email = useCompanyStore((s) => s.email);
+
   const closeAlert = () => setAlert(null);
 
   const showError = useCallback((title: string, description: string) => {
     setAlert({ type: 'error', title, description });
   }, []);
-  
-  
+
+
 
   const handleHttpError = useCallback(
     (statusCode?: number, currentStep?: number) => {
       const s = Number(statusCode);
-      console.log("entre",s)
+      console.log("entre", s)
       if (s === 409 && currentStep === 1) {
         showError('Conflicto', 'Este correo ya está asociado a alguna cuenta existente.');
         return;
@@ -44,13 +46,26 @@ export default function CompanySignup() {
       if (s === 400) {
         showError('Error', 'Error de datos, inténtalo nuevamente o más tarde.');
         return;
-      }    
+      }
       showError('Error', 'Ocurrió un error inesperado. Inténtalo nuevamente o más tarde.');
     },
     [showError]
   );
 
   const goBack = () => setStep((s) => Math.max(1, s - 1));
+
+  const handleResendCode = async () => {
+    try {
+      await fetch(`/api/v1/verifications/company-account`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
+      });
+      console.log("Correo de verificación reenviado a la empresa");
+    } catch (error) {
+      console.error("Error al reenviar código:", error);
+    }
+  };
 
   return (
     <main className="flex h-fit flex-col items-center justify-center gap-10">
@@ -109,6 +124,7 @@ export default function CompanySignup() {
               <EmailVerificationCodeCompanyAny
                 onSuccess={() => setStep(3)}
                 onHttpError={(err: HttpErrorPayload) => handleHttpError(err?.status, 2)}
+                onResend={handleResendCode}
               />
             )}
 

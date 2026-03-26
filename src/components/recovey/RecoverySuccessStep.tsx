@@ -6,9 +6,10 @@ import { useRecoveryStore } from '@/app/store/recoveryPasswordStore';
 
 interface RecoverySuccessStepProps {
   initialSeconds?: number;
+  redirectTo?: string;
 }
 
-export function RecoverySuccessStep({ initialSeconds = 7 }: RecoverySuccessStepProps) {
+export function RecoverySuccessStep({ initialSeconds = 7, redirectTo = '/login/applicant' }: RecoverySuccessStepProps) {
   const router = useRouter();
   const { resetRecoveryData } = useRecoveryStore(); 
   const [secondsLeft, setSecondsLeft] = React.useState<number>(initialSeconds);
@@ -25,9 +26,9 @@ export function RecoverySuccessStep({ initialSeconds = 7 }: RecoverySuccessStepP
 
   React.useEffect(() => {
     if (secondsLeft <= 0) {
-      router.push(`/login/applicant`);
+      router.push(redirectTo);
     }
-  }, [secondsLeft, router]);
+  }, [secondsLeft, router, redirectTo]);
 
   return (
     <div className="h-full w-full max-w-2xl space-y-8 rounded-md border border-gray-300 bg-white px-12 py-6 shadow-sm">

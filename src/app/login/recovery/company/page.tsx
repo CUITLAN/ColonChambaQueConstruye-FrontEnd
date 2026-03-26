@@ -1,20 +1,16 @@
-import { redirect } from 'next/navigation';
+'use client';
 
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
-
 import { useForm, FormProvider } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { recoverySchema, RecoveryFormType } from '@/validations/recoverySchema';
-
 import { useRecoveryStore } from '@/app/store/recoveryPasswordStore';
-
 import HeaderSimple from '@/components/ui/header-simple';
 import { Button } from '@/components/ui/button';
 import FormInput from '@/components/forms/FormInput';
 import Alert from '@/components/common/Alert';
-
 import { EmailCodeValidationStep } from '@/components/auth/EmailCodeValidationStep';
 import { RecoverySetPasswordStep } from '@/components/recovey/RecoverySetPasswordStep';
 import { RecoverySuccessStep } from '@/components/recovey/RecoverySuccessStep';
@@ -87,7 +83,7 @@ export default function RecoveryPage() {
   };
 
   const sendVerificationEmail = async (email: string) => {
-    const response = await fetch(`/api/v1/verifications/user`, {
+    const response = await fetch(`/api/v1/verifications/company-account`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email }),
@@ -147,7 +143,7 @@ export default function RecoveryPage() {
       try {
         const { email, password } = getValues();
 
-        const response = await fetch(`/api/v1/password-reset/user`, {
+        const response = await fetch(`/api/v1/password-reset/company-account`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -192,7 +188,7 @@ export default function RecoveryPage() {
         throw new Error('El código debe ser numérico');
       }
 
-      const response = await fetch(`/api/v1/reset-password-verification/user`, {
+      const response = await fetch(`/api/v1/reset-password-verification/company-account`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -271,26 +267,24 @@ export default function RecoveryPage() {
         <main className="flex h-fit flex-col items-center justify-center gap-10">
           <div className="h-full w-full max-w-2xl space-y-8 rounded-md border border-gray-300 bg-white px-12 py-6 shadow-sm">
 
-            {step < 4 && (
-              <div className="mb-4 flex items-center justify-start gap-4">
-                {step === 1 ? (
-                  <Link href="/login/applicant">
-                    <Button variant="ghost" className="scale-150">
-                      <ArrowLeft className="h-5 w-5" />
-                    </Button>
-                  </Link>
-                ) : (
-                  <Button
-                    variant="ghost"
-                    className="scale-150"
-                    type="button"
-                    onClick={() => setStep((s) => Math.max(1, s - 1))}
-                  >
+            <div className="mb-4 flex items-center justify-start gap-4">
+              {step === 1 ? (
+                <Link href="/">
+                  <Button variant="ghost" className="scale-150">
                     <ArrowLeft className="h-5 w-5" />
                   </Button>
-                )}
-              </div>
-            )}
+                </Link>
+              ) : (
+                <Button
+                  variant="ghost"
+                  className="scale-150"
+                  type="button"
+                  onClick={() => setStep((s) => Math.max(1, s - 1))}
+                >
+                  <ArrowLeft className="h-5 w-5" />
+                </Button>
+              )}
+            </div>
 
             <FormProvider {...methods}>
               <div className="space-y-6">
@@ -336,7 +330,7 @@ export default function RecoveryPage() {
 
                 {step === 3 && <RecoverySetPasswordStep />}
 
-                {step === 4 && <RecoverySuccessStep />}
+                {step === 4 && <RecoverySuccessStep redirectTo="/login/company" />}
 
                 {(step === 1 || step === 3) && (
                   <div className="mt-6 flex justify-center">

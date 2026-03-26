@@ -16,6 +16,7 @@ import Alert from '@/components/ui/Alerts';
 
 export default function PublicLogin() {
   const [showErrorAlert, setShowErrorAlert] = useState(false);
+  const [showTooManyRequestsAlert, setShowTooManyRequestsAlert] = useState(false);
 
   const methods = useForm<LoginFormType>({
     resolver: zodResolver(loginSchema),
@@ -32,36 +33,45 @@ export default function PublicLogin() {
   const loginAction = useApplicantStore((state) => state.login);
 
   const onSubmit = async (data: LoginFormType) => {
-    setShowErrorAlert(false); 
+    setShowErrorAlert(false);
+    setShowTooManyRequestsAlert(false);
 
     try {
       const response = await authService.loginAccount(data.email, data.password, 'user');
       const user = response.data;
-  
-      if(user.status === "ACTIVO"){
-        loginAction(user); 
+
+      if (user.status === 'ACTIVO') {
+        loginAction(user);
         toast.success('Inicio de sesión exitoso');
-        router.push("/applicant/jobs");
+        router.push('/applicant/jobs');
         return;
       }
 
-      if(user.status === "REVISION"){
+      if (user.status === 'REVISION') {
         toast.info('Tu cuenta está en revisión');
-        router.push("/login/waiting");
+        router.push('/login/waiting');
         return;
       }
 
-      toast.error("Ha sucedido algo extraño");
-
+      toast.error('Ha sucedido algo extraño');
     } catch (error: any) {
       console.error('Error en login:', error.message);
 
       if (
-        error.message?.includes("User doesn't exist") || 
-        error.message?.includes("404") ||
-        error.message?.includes("Not Found") ||
-        error.message?.includes("Bad credentials")  ||
-        error.message?.includes("401")
+        error.response?.status === 429 ||
+        error.message?.includes('429') ||
+        error.message?.includes('Too Many Requests')
+      ) {
+        setShowTooManyRequestsAlert(true);
+        return;
+      }
+
+      if (
+        error.message?.includes("User doesn't exist") ||
+        error.message?.includes('404') ||
+        error.message?.includes('Not Found') ||
+        error.message?.includes('Bad credentials') ||
+        error.message?.includes('401')
       ) {
         setShowErrorAlert(true);
       } else {
@@ -73,17 +83,23 @@ export default function PublicLogin() {
   return (
     <>
       <Headersimple />
-      
-      {/* Hola soy la alerta, aqui muestro que voy a decir Jijijija  
-      */}
-      <Alert 
+
+      <Alert
         isVisible={showErrorAlert}
         onClose={() => setShowErrorAlert(false)}
         type="error"
         title="Credenciales inválidas"
         description="Datos incorrectos, inténtelo nuevamente."
       />
-      
+
+      <Alert
+        isVisible={showTooManyRequestsAlert}
+        onClose={() => setShowTooManyRequestsAlert(false)}
+        type="warning"
+        title="Demasiadas peticiones"
+        description="Muchas peticiones espera un momento"
+      />
+
       <div
         className="flex min-h-screen flex-col items-center justify-center py-15"
         style={{
@@ -102,11 +118,12 @@ export default function PublicLogin() {
             </div>
 
             <FormProvider {...methods}>
-              <form 
-                onSubmit={handleSubmit(onSubmit)} 
+              <form
+                onSubmit={handleSubmit(onSubmit)}
                 className="mt-8 space-y-4"
                 onChange={() => {
-                   if(showErrorAlert) setShowErrorAlert(false);
+                  if (showErrorAlert) setShowErrorAlert(false);
+                  if (showTooManyRequestsAlert) setShowTooManyRequestsAlert(false);
                 }}
               >
                 <div className="space-y-10">
@@ -139,30 +156,29 @@ export default function PublicLogin() {
 
                 <div>
                   <Link
-                    href="/login/recovery"
+                    href="/login/recovery/applicant"
                     className="block text-right font-medium no-underline hover:no-underline focus:no-underline"
                     onClick={() => console.log("Le diste click a 'olvidaste contraseña' ")}
                   >
                     ¿Olvidaste tu contraseña?
                   </Link>
                 </div>
+
                 <div className="flex items-center justify-between">
                   <p className="flex items-center gap-1 text-sm">
                     ¿No tienes cuenta?
-                    <Link href="../signup/applicant/" className="font-medium no-underline text-[#FF7F40]"
-                    onClick={() => console.log("Le diste click a Registrate")}>
+                    <Link
+                      href="../signup/applicant/"
+                      className="font-medium no-underline text-[#FF7F40]"
+                      onClick={() => console.log('Le diste click a Registrate')}
+                    >
                       Regístrate
                     </Link>
                   </p>
 
-                  <Button 
-                    variant="primary" 
-                    color="brand" 
-                    type="submit"
-                  >
+                  <Button variant="primary" color="brand" type="submit">
                     Iniciar sesión
                   </Button>
-                  
                 </div>
               </form>
             </FormProvider>

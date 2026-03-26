@@ -2,25 +2,18 @@
 
 import * as React from 'react';
 import { useForm, FormProvider } from 'react-hook-form';
-import FormInput from '@/components/forms/FormInput';
+import { FormOTPValidation } from '../forms/FormOTPValidation';
 import { Button } from '@/components/ui/button';
 
 type CodeFormValues = {
-  code0: string;
-  code1: string;
-  code2: string;
-  code3: string;
-  code4: string;
-  code5: string;
+  otp: string[];
 };
-
-const CODE_KEYS: (keyof CodeFormValues)[] = ['code0', 'code1', 'code2', 'code3', 'code4', 'code5'];
 
 interface EmailCodeValidationStepProps {
   email?: string;
   onVerified?: (code: string) => void;
   onBack?: () => void;
-  onResend?: () => Promise<void>; 
+  onResend?: () => Promise<void>;
 }
 
 export function EmailCodeValidationStep({
@@ -29,7 +22,7 @@ export function EmailCodeValidationStep({
   onBack,
   onResend,
 }: EmailCodeValidationStepProps) {
-  
+
   const [timeLeft, setTimeLeft] = React.useState(90);
   const [canResend, setCanResend] = React.useState(false);
 
@@ -47,7 +40,7 @@ export function EmailCodeValidationStep({
   const handleResendClick = async () => {
     if (!canResend || !onResend) return;
     setCanResend(false);
-    setTimeLeft(90); 
+    setTimeLeft(90);
     await onResend();
   };
 
@@ -60,15 +53,56 @@ export function EmailCodeValidationStep({
 
   const methods = useForm<CodeFormValues>({
     defaultValues: {
-      code0: '', code1: '', code2: '', code3: '', code4: '', code5: '',
+      otp: Array(6).fill(''),
     },
   });
 
   const { control } = methods;
+  const refs = React.useRef<(HTMLInputElement | null)[]>([]);
 
   const onSubmit = (data: CodeFormValues) => {
-    const code = `${data.code0}${data.code1}${data.code2}${data.code3}${data.code4}${data.code5}`;
+    const code = data.otp.join('');
     if (onVerified) onVerified(code);
+  };
+
+  const handleInput = (e: React.FormEvent<HTMLDivElement>) => {
+    const target = e.target as HTMLInputElement;
+    if (target.tagName !== 'INPUT') return;
+    
+    // Auto-advance
+    if (target.value.length >= 1) {
+      const name = target.name;
+      const match = name.match(/code(\d)/);
+      if (match) {
+        const idx = parseInt(match[1], 10);
+        if (idx < 5) {
+          const nextInput = document.querySelector(`input[name="code${idx + 1}"]`) as HTMLInputElement;
+          if (nextInput) {
+            nextInput.focus();
+            nextInput.select(); 
+          }
+        }
+      }
+    }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    const target = e.target as HTMLInputElement;
+    if (target.tagName !== 'INPUT') return;
+
+    if (e.key === 'Backspace' && target.value === '') {
+      const name = target.name;
+      const match = name.match(/code(\d)/);
+      if (match) {
+        const idx = parseInt(match[1], 10);
+        if (idx > 0) {
+          const prevInput = document.querySelector(`input[name="code${idx - 1}"]`) as HTMLInputElement;
+          if (prevInput) {
+            prevInput.focus();
+          }
+        }
+      }
+    }
   };
 
   return (
@@ -83,13 +117,15 @@ export function EmailCodeValidationStep({
         </div>
 
         <div className="mt-6 flex flex-row justify-center gap-4">
-          {CODE_KEYS.map((name) => (
-            <FormInput
-              key={name}
-              name={name} 
+          {Array.from({ length: 6 }).map((_, i) => (
+            <FormOTPValidation
+              key={i}
+              name={`otp.${i}`}
               control={control}
-              maxChars={1}
-              className="w-12 [&_input]:h-12 [&_input]:text-center [&_input]:text-xl"
+              index={i}
+              total={6}
+              inputsRef={refs}
+              className="w-12 h-12 text-center text-xl border-1 rounded-xl"
             />
           ))}
         </div>
@@ -108,11 +144,6 @@ export function EmailCodeValidationStep({
           </div>
 
           <div className="flex gap-2">
-            {onBack && (
-              <Button type="button" variant="primary" onClick={onBack}>
-                Volver
-              </Button>
-            )}
             <Button type="submit">Continuar</Button>
           </div>
         </div>
