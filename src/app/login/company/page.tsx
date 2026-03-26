@@ -45,45 +45,66 @@ export default function PublicLogin() {
 
       const accountData = response.data;
 
-      if (!accountData) {
-        throw new Error('La respuesta del servidor está vacía.');
+      if (!accountData || !accountData.Company) {
+        throw new Error('La respuesta del servidor está incompleta.');
       }
 
-      const companyId = accountData.Company?.id;
-      const accountStatus = accountData.status;
-      const companyStatus = accountData.Company?.status;
+      const token = accountData.token;
+      const accountId = accountData.id;
+      const accountStatus = String(accountData.status).toUpperCase();
+      
+      const companyId = accountData.Company.id;
+      const companyStatus = String(accountData.Company.status).toUpperCase();
 
-      console.log('ACCOUNT ID:', accountData.id);
-      console.log('COMPANY ID:', companyId);
+      console.log('ACCOUNT ID:', accountId, '| STATUS:', accountStatus);
+      console.log('COMPANY ID:', companyId, '| STATUS:', companyStatus);
 
-      const isAccountActive = accountStatus === 'ACTIVA';
-      const isCompanyActive = companyStatus === 'ACTIVA';
+      if (!token || !companyId) {
+        throw new Error('Error: Faltan el token o el ID de la empresa en la respuesta del servidor.');
+      }
+
+      if (companyStatus === 'RECHAZADA' || 
+          accountStatus === 'RECHAZADA' ) {
+        
+        login({
+          token: token,
+          companyId: companyId,
+          email: normalizedEmail, 
+          status: companyStatus === 'RECHAZADA'  ? companyStatus : accountStatus,
+        });
+
+        toast.error('Tu empresa fue rechazada. Por favor revisa y actualiza tu información.');
+        router.push('/employer/profileconfig');
+        return;
+      }
+
+      const isAccountActive = accountStatus === 'ACTIVA' || accountStatus === 'ACTIVO';
+      const isCompanyActive = companyStatus === 'ACTIVA' || companyStatus === 'ACTIVO';
 
       if (isAccountActive && isCompanyActive) {
-        if (accountData.token && companyId) {
-          login({
-            token: accountData.token,
-            companyId,
-            email: normalizedEmail, 
-            status: accountStatus,
-          });
+        login({
+          token: token,
+          companyId: companyId,
+          email: normalizedEmail, 
+          status: accountStatus,
+        });
 
-          toast.success('Inicio de sesión exitoso');
-          router.push('/employer/home/vacancies');
-        } else {
-          throw new Error('Error: Faltan el token o el ID en la respuesta del servidor.');
-        }
-      } else {
-        console.warn('Cuenta inactiva o pendiente. No se guardó la sesión.');
-
-        if (accountStatus === 'PENDIENTE' || companyStatus === 'PENDIENTE') {
-          toast.info('Tu cuenta está pendiente de aprobación.');
-        } else {
-          toast.warning('Tu cuenta no se encuentra activa.');
-        }
-
-        router.push('/login/waiting');
+        toast.success('Inicio de sesión exitoso');
+        router.push('/employer/home/vacancies');
+        return;
       }
+
+      console.warn('Cuenta en revisión o inactiva. No se guardó la sesión completa.');
+      
+      if (companyStatus === 'REVISION' || accountStatus === 'REVISION' ||
+          companyStatus === 'PENDIENTE' || accountStatus === 'PENDIENTE') {
+        toast.info('Tu cuenta está en revisión. Te notificaremos cuando sea aprobada.');
+      } else {
+        toast.warning('Tu cuenta no se encuentra activa en este momento.');
+      }
+
+      router.push('/login/waiting');
+      
     } catch (error: any) {
       console.error('Error en login:', error?.message);
       
@@ -185,8 +206,6 @@ export default function PublicLogin() {
                 </div>
               </form>
             </FormProvider>
-
-            <div className="space-y-2 text-center text-sm text-gray-600"></div>
           </div>
         </main>
       </div>
